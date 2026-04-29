@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tg-bg: #F0F0F5;
+  --tg-accent: #4F7FFF;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--tg-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Скроллируемый контент страниц */
+.page-scroll {
+  height: calc(100vh - 56px - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.page-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Анимации переходов */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.25s ease-out;
+}
+
+/* Карточки */
+.card {
+  @apply bg-card rounded-card shadow-card p-4;
+}
+
+/* Кнопка добавить */
+.btn-add {
+  @apply w-full bg-card rounded-card shadow-card py-3 text-center text-text-secondary text-sm font-medium;
+}
+
+/* Активная вкладка tab bar */
+.tab-active {
+  @apply text-accent;
+}
+
+.tab-inactive {
+  @apply text-text-muted;
+}
