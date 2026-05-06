@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { telegramStorage } from '../lib/telegramStorage'
 import { DiaryEntry, MoodLevel } from '../types'
 import dayjs from 'dayjs'
 

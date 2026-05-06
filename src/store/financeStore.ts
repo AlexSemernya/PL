@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { telegramStorage } from '../lib/telegramStorage'
 import { FinanceEntry, FinanceGoal, FinanceType } from '../types'
 import dayjs from 'dayjs'
 
