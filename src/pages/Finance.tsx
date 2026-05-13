@@ -130,12 +130,17 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
         {showAdd ? (
           <div className="card flex flex-col gap-3">
             {/* Доход / Расход */}
-            <div className="flex bg-icon-bg rounded-full p-1">
+            <div className="flex rounded-full p-1" style={{ background: "var(--toggle-bg)" }}>
               {(['income', 'expense'] as FinanceType[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => { setType(t); setCategory(t === 'income' ? 'salary' : 'food') }}
-                  className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all ${type === t ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-muted)]'}`}
+                  className="flex-1 py-2.5 rounded-full text-sm font-semibold transition-all"
+              style={{
+                background: type === t ? 'var(--toggle-active)' : 'transparent',
+                boxShadow: type === t ? 'var(--toggle-shadow)' : 'none',
+                color: type === t ? 'var(--color-text)' : 'var(--chip-text)',
+              }}
                 >
                   {t === 'income' ? 'Доход' : 'Расход'}
                 </button>
@@ -159,7 +164,13 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
                 <button
                   key={c.id}
                   onClick={() => setCategory(c.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${category === c.id ? 'bg-[var(--color-accent)] text-white border-transparent' : 'border-[var(--color-border)] text-[var(--color-text)]'}`}
+                  className="px-4 py-2 rounded-full text-sm font-medium transition-all"
+              style={{
+                background: category === c.id ? 'var(--chip-active)' : 'transparent',
+                color: category === c.id ? 'var(--color-text)' : 'var(--chip-text)',
+                border: '1px solid var(--color-border)',
+                fontWeight: category === c.id ? 600 : 400,
+              }}
                 >
                   {c.label}
                 </button>

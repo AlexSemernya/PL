@@ -32,17 +32,17 @@ export default function WeekCalendar({ selectedDate, currentMonth, onDateChange 
             onClick={() => onDateChange(dateStr)}
             className="flex flex-col items-center py-1 rounded-xl transition-colors"
           >
-            <span className={`text-[10px] font-medium mb-1 ${isOtherMonth ? 'text-text-muted' : 'text-text-secondary'}`}>
+            <span className="text-[10px] font-medium mb-1" style={{ color: "var(--chip-text)" }}>
               {label}
             </span>
             <div
-              className={`w-8 h-8 flex items-center justify-center rounded-full text-[15px] font-semibold transition-colors ${
-                isSelected
-                  ? 'bg-accent text-white'
-                  : isToday
-                  ? 'bg-accent-light text-accent'
-                  : 'text-text-primary'
-              } ${isOtherMonth ? 'opacity-40' : ''}`}
+              className="w-8 h-8 flex items-center justify-center rounded-xl text-[15px] font-semibold transition-colors"
+            style={{
+              background: isSelected ? 'var(--chip-active)' : 'transparent',
+              color: isSelected ? 'var(--color-text)' : isToday ? 'var(--color-accent)' : 'var(--color-text)',
+              opacity: isOtherMonth ? 0.3 : 1,
+              fontWeight: isSelected || isToday ? 700 : 500,
+            }}
             >
               {date.date()}
             </div>
