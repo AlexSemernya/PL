@@ -158,3 +158,11 @@ body {
   --hm-0: rgba(0,0,0,0.06); --hm-1: rgba(255,149,0,0.18); --hm-2: rgba(255,149,0,0.38); --hm-3: rgba(255,149,0,0.65); --hm-4: #FF9500;
 }
 
+
+html.dark {
+  --color-background: #000000;
+  --color-card: #1C1C1E;
+  --color-text: #FFFFFF;
+  --color-text-muted: rgba(255,255,255,0.48);
+  --color-border: rgba(255,255,255,0.09);
+}
