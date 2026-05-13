@@ -136,7 +136,7 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
                   key={t}
                   onClick={() => { setType(t); setCategory(t === 'income' ? 'salary' : 'food') }}
                   className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    type === t ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'
+                    type === t ? 'bg-accent text-white' : 'bg-icon-bg text-text-secondary'
                   }`}
                 >
                   {t === 'income' ? 'Доход' : 'Расход'}
@@ -162,7 +162,7 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
                   key={c.id}
                   onClick={() => setCategory(c.id)}
                   className={`px-3 py-1.5 rounded-pill text-sm font-medium transition-colors ${
-                    category === c.id ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'
+                    category === c.id ? 'bg-accent text-white' : 'bg-icon-bg text-text-secondary'
                   }`}
                 >
                   {c.label}
@@ -183,7 +183,7 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
               <button onClick={handleAdd} className="flex-1 bg-accent text-white rounded-xl py-2.5 text-sm font-medium">
                 Подтвердить
               </button>
-              <button onClick={() => setShowAdd(false)} className="flex-1 bg-gray-100 text-text-secondary rounded-xl py-2.5 text-sm font-medium">
+              <button onClick={() => setShowAdd(false)} className="flex-1 bg-icon-bg text-text-secondary rounded-xl py-2.5 text-sm font-medium">
                 Отменить
               </button>
             </div>

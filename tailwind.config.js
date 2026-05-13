@@ -5,14 +5,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg:            'var(--color-bg)',
-        card:          'var(--color-card)',
-        accent:        '#4F7FFF',
-        'accent-light':'var(--color-accent-light)',
-        text:          'var(--color-text)',
-        'text-sub':    'var(--color-text-sub)',
-        border:        'var(--color-border)',
+        bg: 'var(--color-bg)',
+        card: 'var(--color-card)',
+        accent: '#4F7FFF',
+        'accent-light': 'var(--color-accent-light)',
+        'icon-bg': 'var(--color-icon-bg)',
+        border: 'var(--color-border)',
+        text: {
+          primary: 'var(--color-text)',
+          secondary: 'var(--color-text-sub)',
+          muted: 'var(--color-text-muted)',
+          accent: '#4F7FFF',
+        },
       },
+      borderRadius: { card: '16px' },
+      boxShadow: { card: '0 2px 12px rgba(0,0,0,0.06)' },
     },
   },
   plugins: [],

@@ -1,88 +1,51 @@
-
-:root {
-  --color-bg:           #F0F0F5;
-  --color-card:         #FFFFFF;
-  --color-accent-light: #EEF2FF;
-  --color-text:         #111118;
-  --color-text-sub:     #666680;
-  --color-border:       #E5E5EF;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg:           #111118;
-    --color-card:         #1A1A2E;
-    --color-accent-light: rgba(79,127,255,0.15);
-    --color-text:         #FFFFFF;
-    --color-text-sub:     rgba(255,255,255,0.45);
-    --color-border:       rgba(255,255,255,0.08);
-  }
-}
-
-@tailwind base;
-@tailwind components;
 @tailwind utilities;
 
 :root {
   --tg-bg: #F0F0F5;
   --tg-accent: #4F7FFF;
+  --color-bg: #F0F0F5;
+  --color-card: #FFFFFF;
+  --color-accent-light: #EEF2FF;
+  --color-text: #111118;
+  --color-text-sub: #666680;
+  --color-text-muted: #AAAABB;
+  --color-icon-bg: #EBEBF0;
+  --color-border: #E5E5EF;
 }
 
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tg-bg: #111118;
+    --color-bg: #111118;
+    --color-card: #1A1A2E;
+    --color-accent-light: rgba(79,127,255,0.15);
+    --color-text: #FFFFFF;
+    --color-text-sub: rgba(255,255,255,0.55);
+    --color-text-muted: rgba(255,255,255,0.30);
+    --color-icon-bg: rgba(255,255,255,0.08);
+    --color-border: rgba(255,255,255,0.08);
+  }
 }
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
-
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; width: 100%; overflow: hidden; }
 body {
-  background-color: var(--tg-bg);
+  background-color: var(--color-bg);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
-
-/* Скроллируемый контент страниц */
 .page-scroll {
   height: calc(100vh - 56px - env(safe-area-inset-bottom));
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
-
-.page-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-/* Анимации переходов */
+.page-scroll::-webkit-scrollbar { display: none; }
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
-
-.animate-slide-up {
-  animation: slideUp 0.25s ease-out;
-}
-
-/* Карточки */
-.card {
-  @apply bg-card rounded-card shadow-card p-4;
-}
-
-/* Кнопка добавить */
-.btn-add {
-  @apply w-full bg-card rounded-card shadow-card py-3 text-center text-text-secondary text-sm font-medium;
-}
-
-/* Активная вкладка tab bar */
-.tab-active {
-  @apply text-accent;
-}
-
-.tab-inactive {
-  @apply text-text-muted;
-}
+.animate-slide-up { animation: slideUp 0.25s ease-out; }
+.card { @apply bg-card rounded-card shadow-card p-4; }
+.btn-add { @apply w-full bg-card rounded-card shadow-card py-3 text-center text-text-secondary text-sm font-medium; }
+.tab-active { @apply text-accent; }
+.tab-inactive { @apply text-text-muted; }

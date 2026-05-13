@@ -26,13 +26,13 @@ export default function CalendarHeader({ selectedDate, onDateChange }: CalendarH
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors">
+          <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-icon-bg active:bg-gray-200 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" strokeWidth="2.5" strokeLinecap="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
           <span className="text-[17px] font-semibold text-text-primary">{monthLabel}</span>
-          <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors">
+          <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-icon-bg active:bg-gray-200 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" strokeWidth="2.5" strokeLinecap="round">
               <polyline points="9 18 15 12 9 6" />
             </svg>
@@ -40,7 +40,7 @@ export default function CalendarHeader({ selectedDate, onDateChange }: CalendarH
         </div>
 
         {/* Переключатель вид */}
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+        <div className="flex items-center gap-1 bg-icon-bg rounded-lg p-0.5">
           <button
             onClick={() => setMode('week')}
             className={`w-8 h-7 flex items-center justify-center rounded-md transition-colors ${mode === 'week' ? 'bg-white shadow-sm' : ''}`}

@@ -36,7 +36,7 @@ export default function Home({ selectedDate, onDateChange }: HomeProps) {
                 {completedCount}
                 <span className="text-lg text-text-secondary font-normal">/{habits.length || 0}</span>
               </span>
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-icon-bg">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="2" strokeLinecap="round">
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
@@ -59,7 +59,7 @@ export default function Home({ selectedDate, onDateChange }: HomeProps) {
             <span className="text-3xl font-bold text-text-primary mt-1">{streak} дней</span>
             <span className="text-xs text-text-secondary">без лишних трат</span>
             <div className="flex justify-end mt-1">
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-icon-bg">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="2">
                   <rect x="2" y="7" width="20" height="14" rx="2" />
                   <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
@@ -74,7 +74,7 @@ export default function Home({ selectedDate, onDateChange }: HomeProps) {
             <span className="text-3xl font-bold text-text-primary mt-1">{goalsActive}</span>
             <span className="text-xs text-text-secondary">активные</span>
             <div className="flex justify-end mt-1">
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-icon-bg">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="2">
                   <path d="M6 9H4.5a2.5 2.5 0 010-5H6" />
                   <path d="M18 9h1.5a2.5 2.5 0 000-5H18" />

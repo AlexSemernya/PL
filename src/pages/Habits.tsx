@@ -108,7 +108,7 @@ export default function Habits({ selectedDate, onDateChange }: HabitsProps) {
               </button>
               <button
                 onClick={() => { setShowAdd(false); setNewTitle('') }}
-                className="flex-1 bg-gray-100 text-text-secondary rounded-xl py-2 text-sm font-medium"
+                className="flex-1 bg-icon-bg text-text-secondary rounded-xl py-2 text-sm font-medium"
               >
                 Отмена
               </button>

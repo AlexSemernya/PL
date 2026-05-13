@@ -117,7 +117,7 @@ export default function Goals({ selectedDate, onDateChange }: GoalsProps) {
               <button onClick={handleAdd} className="flex-1 bg-accent text-white rounded-xl py-2 text-sm font-medium">
                 Добавить
               </button>
-              <button onClick={() => setShowAdd(false)} className="flex-1 bg-gray-100 text-text-secondary rounded-xl py-2 text-sm font-medium">
+              <button onClick={() => setShowAdd(false)} className="flex-1 bg-icon-bg text-text-secondary rounded-xl py-2 text-sm font-medium">
                 Отмена
               </button>
             </div>
