@@ -75,6 +75,7 @@ export const useFinanceStore = create<FinanceState>()(
         const expenseDates = new Set(
           entries.filter((e) => e.type === 'expense').map((e) => e.date)
         )
+        if (expenseDates.size === 0) return 0
         let streak = 0
         let day = dayjs()
         // считаем дни без трат подряд (до сегодня)
