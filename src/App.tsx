@@ -39,7 +39,9 @@ export default function App() {
     if (tg) {
       tg.ready()
       tg.expand()
-      tg.setBackgroundColor('#F0F0F5')
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  tg.setBackgroundColor(isDark ? '#111118' : '#F0F0F5')
+  tg.setHeaderColor(isDark ? '#111118' : '#F0F0F5')
       tg.setHeaderColor('#F0F0F5')
     }
   }, [])

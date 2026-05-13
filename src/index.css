@@ -1,3 +1,24 @@
+
+:root {
+  --color-bg:           #F0F0F5;
+  --color-card:         #FFFFFF;
+  --color-accent-light: #EEF2FF;
+  --color-text:         #111118;
+  --color-text-sub:     #666680;
+  --color-border:       #E5E5EF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg:           #111118;
+    --color-card:         #1A1A2E;
+    --color-accent-light: rgba(79,127,255,0.15);
+    --color-text:         #FFFFFF;
+    --color-text-sub:     rgba(255,255,255,0.45);
+    --color-border:       rgba(255,255,255,0.08);
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
