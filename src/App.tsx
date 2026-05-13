@@ -56,9 +56,9 @@ export default function App() {
   const pageProps = { selectedDate, onDateChange: setSelectedDate }
 
   return (
-    <div className="relative h-full w-full bg-bg overflow-hidden">
+    <div className="relative h-full w-full bg-bg">
       {/* Контент */}
-      <div className="h-full">
+      <div className="h-full overflow-y-auto pb-16">
         {activeTab === 'home'    && <Home    {...pageProps} />}
         {activeTab === 'habits'  && <Habits  {...pageProps} />}
         {activeTab === 'goals'   && <Goals   {...pageProps} />}
