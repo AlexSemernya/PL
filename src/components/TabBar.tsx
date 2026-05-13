@@ -61,7 +61,7 @@ const tabs: { id: TabId; label: string; icon: (active: boolean) => JSX.Element }
 export default function TabBar({ active, onChange }: TabBarProps) {
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 bg-bg border-t border-border flex items-center justify-around z-50"
+      className="fixed bottom-0 left-0 right-0 flex items-center justify-around z-50" style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(56px + env(safe-area-inset-bottom))' }}
     >
       {tabs.map((tab) => {

@@ -22,7 +22,7 @@ export default function CalendarHeader({ selectedDate, onDateChange }: CalendarH
   const nextMonth = () => setCurrentMonth(dayjs(currentMonth).add(1, 'month').format('YYYY-MM'))
 
   return (
-    <div className="bg-bg px-4 pt-4 pb-2">
+    <div className="px-4 pt-4 pb-2" style={{ background: 'var(--color-bg)' }}>
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
