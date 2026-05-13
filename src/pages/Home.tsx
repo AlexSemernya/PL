@@ -9,11 +9,19 @@ import SpendingWaveform from '../components/SpendingWaveform'
 
 dayjs.locale('ru')
 
-export default function Home() {
+interface HomeProps {
+  selectedDate?: string
+  onDateChange?: (date: string) => void
+}
+
+export default function Home({ selectedDate, onDateChange }: HomeProps = {}) {
   return (
     <div className="animate-slide-up">
-      <CalendarHeader />
-      <div className="px-3 pt-3 pb-4">
+      <CalendarHeader
+        selectedDate={selectedDate}
+        onDateChange={onDateChange}
+      />
+      <div className="page-scroll px-3 pt-3 pb-4">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
           <ActivityRings />
           <GoalsCard />
