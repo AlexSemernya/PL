@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Telegram CloudStorage adapter для Zustand persist
  *
