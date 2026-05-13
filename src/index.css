@@ -49,3 +49,20 @@ body {
 .btn-add { @apply w-full bg-card rounded-card shadow-card py-3 text-center text-text-secondary text-sm font-medium; }
 .tab-active { @apply text-accent; }
 .tab-inactive { @apply text-text-muted; }
+
+:root {
+  --color-accent: #FF9500; --color-accent-2: #FB923C; --color-accent-dim: rgba(255,149,0,0.45);
+  --ring-bg: rgba(0,0,0,0.07); --badge-bg: rgba(255,149,0,0.14); --badge-text: #CC7700;
+  --day-done-bg: rgba(255,149,0,0.14); --day-done-text: #CC7700;
+  --fin-bg: #FFFFFF; --fin-title: rgba(60,60,67,0.5); --fin-amt: #000000; --bar-future: rgba(0,0,0,0.07);
+  --hm-0: rgba(0,0,0,0.06); --hm-1: rgba(255,149,0,0.18); --hm-2: rgba(255,149,0,0.38); --hm-3: rgba(255,149,0,0.65); --hm-4: #FF9500;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-accent: #34C759; --color-accent-2: #30D158; --color-accent-dim: rgba(52,199,89,0.45);
+    --ring-bg: rgba(255,255,255,0.08); --badge-bg: rgba(52,199,89,0.14); --badge-text: #2DBD51;
+    --day-done-bg: rgba(52,199,89,0.15); --day-done-text: #2DBD51;
+    --fin-bg: #0A0A0A; --fin-title: rgba(255,255,255,0.35); --fin-amt: #FFFFFF; --bar-future: rgba(255,255,255,0.1);
+    --hm-0: rgba(255,255,255,0.06); --hm-1: rgba(52,199,89,0.18); --hm-2: rgba(52,199,89,0.38); --hm-3: rgba(52,199,89,0.65); --hm-4: #34C759;
+  }
+}
