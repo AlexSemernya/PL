@@ -73,13 +73,18 @@ export const useFinanceStore = create<FinanceState>()(
       getStreak: () => {
         const { entries } = get()
         const expenseDates = new Set(
-          entries.filter((e) => e.type === 'expense').map((e) => e.date)
+          entries.filter((e) => e.type === 'expense').map((e) => dayjs(e.date).format('YYYY-MM-DD'))
         )
         if (expenseDates.size === 0) return 0
         let streak = 0
         let day = dayjs()
-        // считаем дни без трат подряд (до сегодня)
-        while (!expenseDates.has(day.format('YYYY-MM-DD'))) {
+        // если сегодня нет трат — начинаем со вчера
+        if (!expenseDates.has(dayjs().format('YYYY-MM-DD'))) {
+          const yesterday = dayjs().subtract(1, 'day')
+          if (expenseDates.has(yesterday.format('YYYY-MM-DD'))) day = yesterday
+        }
+        // считаем дни С тратами подряд
+        while (expenseDates.has(day.format('YYYY-MM-DD'))) {
           streak++
           day = day.subtract(1, 'day')
           if (streak > 365) break
