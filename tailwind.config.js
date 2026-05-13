@@ -7,7 +7,7 @@ export default {
       colors: {
         bg: 'var(--color-bg)',
         card: 'var(--color-card)',
-        accent: '#4F7FFF',
+        accent: 'var(--color-accent)',
         'accent-light': 'var(--color-accent-light)',
         'icon-bg': 'var(--color-icon-bg)',
         border: 'var(--color-border)',
@@ -15,7 +15,7 @@ export default {
           primary: 'var(--color-text)',
           secondary: 'var(--color-text-sub)',
           muted: 'var(--color-text-muted)',
-          accent: '#4F7FFF',
+          accent: 'var(--color-accent)',
         },
       },
       borderRadius: { card: '16px' },

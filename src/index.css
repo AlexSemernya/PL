@@ -46,7 +46,21 @@ body {
 }
 .animate-slide-up { animation: slideUp 0.25s ease-out; }
 .card { @apply bg-card rounded-card shadow-card p-4; }
-.btn-add { @apply w-full bg-card rounded-card shadow-card py-3 text-center text-text-secondary text-sm font-medium; }
+.btn-add {
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: -0.2px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-add:active { opacity: 0.8; }
 .tab-active { @apply text-accent; }
 .tab-inactive { @apply text-text-muted; }
 

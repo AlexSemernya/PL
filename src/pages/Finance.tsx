@@ -130,14 +130,12 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
         {showAdd ? (
           <div className="card flex flex-col gap-3">
             {/* Доход / Расход */}
-            <div className="flex gap-2">
+            <div className="flex bg-icon-bg rounded-full p-1">
               {(['income', 'expense'] as FinanceType[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => { setType(t); setCategory(t === 'income' ? 'salary' : 'food') }}
-                  className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    type === t ? 'bg-accent text-white' : 'bg-icon-bg text-text-secondary'
-                  }`}
+                  className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all ${type === t ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-muted)]'}`}
                 >
                   {t === 'income' ? 'Доход' : 'Расход'}
                 </button>
@@ -161,9 +159,7 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
                 <button
                   key={c.id}
                   onClick={() => setCategory(c.id)}
-                  className={`px-3 py-1.5 rounded-pill text-sm font-medium transition-colors ${
-                    category === c.id ? 'bg-accent text-white' : 'bg-icon-bg text-text-secondary'
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${category === c.id ? 'bg-[var(--color-accent)] text-white border-transparent' : 'border-[var(--color-border)] text-[var(--color-text)]'}`}
                 >
                   {c.label}
                 </button>
@@ -180,10 +176,10 @@ export default function Finance({ selectedDate, onDateChange }: FinanceProps) {
             />
 
             <div className="flex gap-2">
-              <button onClick={handleAdd} className="flex-1 bg-accent text-white rounded-xl py-2.5 text-sm font-medium">
+              <button onClick={handleAdd} className="flex-1 bg-[var(--color-accent)] text-white rounded-full py-3 text-sm font-semibold">
                 Подтвердить
               </button>
-              <button onClick={() => setShowAdd(false)} className="flex-1 bg-icon-bg text-text-secondary rounded-xl py-2.5 text-sm font-medium">
+              <button onClick={() => setShowAdd(false)} className="flex-1 rounded-full py-3 text-sm font-medium text-[var(--color-text-muted)]">
                 Отменить
               </button>
             </div>
