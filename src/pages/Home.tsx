@@ -1,7 +1,7 @@
 // @ts-nocheck
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { CalendarHeader } from '../components/CalendarHeader'
+import CalendarHeader from '../components/CalendarHeader'
 import ActivityRings from '../components/ActivityRings'
 import GoalsCard from '../components/GoalsCard'
 import HabitHeatmap from '../components/HabitHeatmap'
