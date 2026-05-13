@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { useState } from 'react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { CalendarHeader } from '../components/CalendarHeader'
@@ -11,10 +10,9 @@ import SpendingWaveform from '../components/SpendingWaveform'
 dayjs.locale('ru')
 
 export default function Home() {
-  const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'))
   return (
     <div className="animate-slide-up">
-      <CalendarHeader selectedDate={selectedDate} onDateChange={setSelectedDate} />
+      <CalendarHeader />
       <div className="page-scroll px-3 pt-3 pb-4">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
           <ActivityRings />
