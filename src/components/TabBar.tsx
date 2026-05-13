@@ -62,7 +62,7 @@ export default function TabBar({ active, onChange }: TabBarProps) {
   return (
     <div
       className="fixed bottom-0 left-0 right-0 flex items-center justify-around z-50"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(56px + env(safe-area-inset-bottom))', background: 'var(--color-bg)', borderTop: '1px solid var(--color-border)' }}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(56px + env(safe-area-inset-bottom))', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)' }}
     >
       {tabs.map((tab) => {
         const isActive = active === tab.id

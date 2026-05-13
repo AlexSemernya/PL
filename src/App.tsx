@@ -32,6 +32,18 @@ declare global {
 }
 
 export default function App() {
+  
+  // Telegram theme detection
+  useEffect(() => {
+    const twa = (window as any).Telegram?.WebApp
+    const applyTheme = () => {
+      const scheme = twa?.colorScheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      document.documentElement.setAttribute('data-theme', scheme)
+    }
+    applyTheme()
+    twa?.onEvent?.('themeChanged', applyTheme)
+  }, [])
+
   const [activeTab, setActiveTab] = useState<TabId>('home')
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'))
 
