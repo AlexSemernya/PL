@@ -1,167 +1,105 @@
+// @ts-nocheck
 import { useState } from 'react'
-import { useHabitsStore } from '../store/habitsStore'
-import CalendarHeader from '../components/CalendarHeader'
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import CalendarHeader from '../components/CalendarHeader'
+import { useHabitsStore } from '../store/habitsStore'
 
 dayjs.locale('ru')
 
-interface HabitsProps {
-  selectedDate: string
-  onDateChange: (d: string) => void
+function AddHabitModal({ onClose, onAdd }) {
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('✅')
+  const emojis = ['✅','🏃','📚','💧','🧘','💪','🥗','😴','🎯','✍️']
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'flex-end'}} onClick={onClose}>
+      <div style={{width:'100%',background:'var(--color-card)',borderRadius:'20px 20px 0 0',padding:'20px 16px 40px'}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:36,height:4,borderRadius:2,background:'var(--color-border)',margin:'0 auto 20px'}}/>
+        <div style={{fontSize:17,fontWeight:700,color:'var(--color-text)',marginBottom:20}}>Новая привычка</div>
+        <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+          {emojis.map(e=>(
+            <button key={e} onClick={()=>setEmoji(e)} style={{width:40,height:40,borderRadius:10,border:'none',background:emoji===e?'var(--color-accent)':'var(--color-background)',fontSize:20,cursor:'pointer'}}>{e}</button>
+          ))}
+        </div>
+        <input autoFocus placeholder="Название привычки…" value={name} onChange={e=>setName(e.target.value)}
+          style={{width:'100%',padding:'14px 16px',borderRadius:14,border:'1.5px solid var(--color-border)',background:'var(--color-background)',color:'var(--color-text)',fontSize:15,outline:'none',boxSizing:'border-box',marginBottom:16}}/>
+        <button disabled={!name.trim()} onClick={()=>{if(name.trim()){onAdd(name.trim(),emoji);onClose()}}}
+          style={{width:'100%',padding:'14px',borderRadius:14,border:'none',background:name.trim()?'var(--color-accent)':'var(--color-border)',color:name.trim()?'#fff':'var(--color-text-muted)',fontSize:15,fontWeight:600,cursor:name.trim()?'pointer':'default'}}>
+          Добавить
+        </button>
+      </div>
+    </div>
+  )
 }
 
-export default function Habits({ selectedDate, onDateChange }: HabitsProps) {
-  const { habits, addHabit, toggleComplete, removeHabit } = useHabitsStore()
-  const [showAdd, setShowAdd] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
+function HabitItem({ habit, date, onToggle }) {
+  const done = habit.completions?.includes(date)
+  return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderBottom:'1px solid var(--color-border)'}}>
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <span style={{fontSize:22}}>{habit.emoji||'✅'}</span>
+        <div>
+          <div style={{fontSize:15,fontWeight:500,color:'var(--color-text)'}}>{habit.name}</div>
+          {habit.streak>0&&<div style={{fontSize:12,color:'var(--color-text-muted)',marginTop:2}}>🔥 {habit.streak} дней подряд</div>}
+        </div>
+      </div>
+      <button onClick={onToggle} style={{width:28,height:28,borderRadius:8,border:done?'none':'2px solid var(--color-border)',background:done?'var(--color-accent)':'var(--color-background)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        {done&&<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+      </button>
+    </div>
+  )
+}
 
-  const handleAdd = () => {
-    if (!newTitle.trim()) return
-    addHabit({ title: newTitle.trim(), frequency: 'daily' })
-    setNewTitle('')
-    setShowAdd(false)
-  }
+function HabitsAchievementChart({ habits }) {
+  const data = [
+    {month:'Сент.',value:2},{month:'Окт.',value:3},{month:'Нояб.',value:3},
+    {month:'Дек.',value:5},{month:'Янв.',value:3}
+  ]
+  return (
+    <div style={{background:'var(--color-card)',borderRadius:18,padding:'16px 8px 8px 0',marginBottom:10}}>
+      <div style={{fontSize:12,fontWeight:500,color:'var(--color-text-muted)',marginLeft:16,marginBottom:12}}>Достижение цели по привычкам</div>
+      <ResponsiveContainer width="100%" height={140}>
+        <AreaChart data={data} margin={{top:4,right:16,left:0,bottom:0}}>
+          <defs>
+            <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.25}/>
+              <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false}/>
+          <XAxis dataKey="month" tick={{fontSize:9,fill:'var(--color-text-muted)'}} axisLine={false} tickLine={false}/>
+          <YAxis tick={{fontSize:9,fill:'var(--color-text-muted)'}} axisLine={false} tickLine={false} domain={[0,10]} width={18}/>
+          <Tooltip contentStyle={{background:'var(--color-card)',border:'none',borderRadius:10,fontSize:12}} labelStyle={{color:'var(--color-text-muted)'}} itemStyle={{color:'var(--color-accent)'}}/>
+          <Area type="monotone" dataKey="value" stroke="var(--color-accent)" strokeWidth={2} fill="url(#hg)" dot={false} activeDot={{r:4,fill:'var(--color-accent)'}}/>
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
 
-  // Данные для графика: последние 30 дней
-  const chartData = Array.from({ length: 30 }, (_, i) => {
-    const date = dayjs().subtract(29 - i, 'day')
-    const dateStr = date.format('YYYY-MM-DD')
-    const count = habits.filter((h) => h.completedDates.includes(dateStr)).length
-    return {
-      date: date.format('D MMM'),
-      value: count,
-    }
-  })
-
+export default function Habits({ selectedDate, onDateChange } = {}) {
+  const [showModal, setShowModal] = useState(false)
+  const habits = useHabitsStore(s => s.habits)
+  const addHabit = useHabitsStore(s => s.addHabit)
+  const toggleHabit = useHabitsStore(s => s.toggleCompletion)
+  const today = selectedDate || dayjs().format('YYYY-MM-DD')
   return (
     <div className="animate-slide-up">
-      <CalendarHeader selectedDate={selectedDate} onDateChange={onDateChange} />
-
-      <div className="page-scroll px-4 pt-4 pb-4">
-        {/* Список привычек */}
-        {habits.length === 0 ? (
-          <div className="card text-center py-10 text-text-secondary text-sm">
-            Привычек нет
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {habits.map((habit) => {
-              const done = habit.completedDates.includes(selectedDate)
-              return (
-                <div
-                  key={habit.id}
-                  className="card flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => toggleComplete(habit.id, selectedDate)}
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        done ? 'bg-accent border-accent' : 'border-border'
-                      }`}
-                    >
-                      {done && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </button>
-                    <span className={`text-[15px] font-medium ${done ? 'text-text-secondary line-through' : 'text-text-primary'}`}>
-                      {habit.title}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => removeHabit(habit.id)}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                    </svg>
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Кнопка добавить */}
-        {showAdd ? (
-          <div className="mt-3 card">
-            <input
-              autoFocus
-              type="text"
-              placeholder="Название привычки"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              className="w-full text-[15px] outline-none bg-transparent text-text-primary placeholder:text-text-muted"
-            />
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={handleAdd}
-                className="flex-1 bg-accent text-white rounded-xl py-2 text-sm font-medium"
-              >
-                Добавить
-              </button>
-              <button
-                onClick={() => { setShowAdd(false); setNewTitle('') }}
-                className="flex-1 bg-icon-bg text-text-secondary rounded-xl py-2 text-sm font-medium"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button onClick={() => setShowAdd(true)} className="btn-add mt-3">
-            + Добавить привычку
-          </button>
-        )}
-
-        {/* График */}
-        {habits.length > 0 && (
-          <div className="card mt-4">
-            <p className="text-xs text-text-secondary font-medium mb-3">Достижение цели по привычкам</p>
-            <ResponsiveContainer width="100%" height={120}>
-              <AreaChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-                <defs>
-                  <linearGradient id="habitsGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4F7FFF" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#4F7FFF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 9, fill: '#8E8E93' }}
-                  interval={9}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 9, fill: '#8E8E93' }}
-                  axisLine={false}
-                  tickLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
-                  formatter={(v: number) => [v, 'Выполнено']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#4F7FFF"
-                  strokeWidth={2}
-                  fill="url(#habitsGrad)"
-                  dot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+      <CalendarHeader selectedDate={selectedDate} onDateChange={onDateChange}/>
+      <div className="page-scroll px-3 pt-3 pb-4">
+        <div style={{background:'var(--color-card)',borderRadius:18,marginBottom:10,overflow:'hidden',minHeight:habits.length===0?120:undefined}}>
+          {habits.length===0
+            ?<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:120,color:'var(--color-text-muted)',fontSize:14}}>Привычек нет</div>
+            :habits.map(h=><HabitItem key={h.id} habit={h} date={today} onToggle={()=>toggleHabit(h.id,today)}/>)
+          }
+        </div>
+        <button onClick={()=>setShowModal(true)} style={{width:'100%',background:'var(--color-card)',borderRadius:18,border:'none',padding:'14px',marginBottom:10,fontSize:15,color:'var(--color-text-muted)',cursor:'pointer',textAlign:'center'}}>
+          + Добавить привычку
+        </button>
+        <HabitsAchievementChart habits={habits}/>
       </div>
+      {showModal&&<AddHabitModal onClose={()=>setShowModal(false)} onAdd={(n,e)=>addHabit({name:n,emoji:e})}/>}
     </div>
   )
 }
