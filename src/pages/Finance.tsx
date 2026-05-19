@@ -75,11 +75,21 @@ export function Finance({ selectedDate, onDateChange }: Props) {
             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Финансы</div>
             <div className="w-sub">{dayjs().format('MMMM · D')}</div>
           </div>
-          <div className="segmented">
-            {(['Месяц', 'Год'] as const).map((r) => (
-              <button key={r} className={range === r ? 'on' : ''}
-                      onClick={() => { setRange(r); haptic('select') }}>{r}</button>
-            ))}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="segmented">
+              {(['Месяц', 'Год'] as const).map((r) => (
+                <button key={r} className={range === r ? 'on' : ''}
+                        onClick={() => { setRange(r); haptic('select') }}>{r}</button>
+              ))}
+            </div>
+            <button
+              className="fab"
+              style={{ width: 'auto', padding: '10px 14px', borderRadius: 14 }}
+              onClick={() => { setOpenAdd(true); haptic('medium') }}
+              aria-label="Добавить операцию"
+            >
+              <Icon name="plus" size={14} color="#0a0a0b" stroke={2.6} />
+            </button>
           </div>
         </div>
 
@@ -170,9 +180,6 @@ export function Finance({ selectedDate, onDateChange }: Props) {
         {/* Recent transactions */}
         <div className="sec-h">
           <span className="t">Последние операции</span>
-          <button className="a" onClick={() => { setOpenAdd(true); haptic('medium') }}>
-            <Icon name="plus" size={12} /> добавить
-          </button>
         </div>
         {recent.length === 0 ? (
           <div className="widget" style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13, padding: 24 }}>
@@ -207,6 +214,13 @@ export function Finance({ selectedDate, onDateChange }: Props) {
               </button>
             )
           })
+        )}
+
+        {recent.length > 0 && (
+          <button className="fab ghost" style={{ marginTop: 14 }}
+                  onClick={() => { setOpenAdd(true); haptic('medium') }}>
+            <Icon name="plus" size={14} /> Добавить операцию
+          </button>
         )}
       </div>
 
