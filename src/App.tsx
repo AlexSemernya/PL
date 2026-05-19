@@ -17,6 +17,11 @@ import { Finance } from './pages/Finance'
 import { Diary } from './pages/Diary'
 import { Friends } from './pages/Friends'
 import { useUser } from './lib/useUser'
+import { api } from './lib/botApi'
+import { computeStatsSnapshot } from './lib/computeStats'
+import { useHabitsStore } from './store/habitsStore'
+import { useGoalsStore } from './store/goalsStore'
+import { useDiaryStore } from './store/diaryStore'
 import type { TabId } from './types'
 
 dayjs.extend(isoWeek)
@@ -76,6 +81,30 @@ export default function App() {
       version: (tg as any)?.version,
       platform: (tg as any)?.platform,
     })
+  }, [])
+
+  // ─── Push stats snapshot to the bot so friends see fresh numbers.
+  //     Debounced — fires 1s after the last store change. Also fires on boot.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const schedule = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        api.pushStats(computeStatsSnapshot()).catch(() => { /* silent */ })
+      }, 1000)
+    }
+    // initial push
+    schedule()
+    // subscribe to store changes
+    const unsubs = [
+      useHabitsStore.subscribe(schedule),
+      useGoalsStore.subscribe(schedule),
+      useDiaryStore.subscribe(schedule),
+    ]
+    return () => {
+      if (timer) clearTimeout(timer)
+      unsubs.forEach((u) => u())
+    }
   }, [])
 
   const { data: userData } = useUser()

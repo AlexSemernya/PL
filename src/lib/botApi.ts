@@ -75,6 +75,39 @@ export interface MeResponse {
   trial_days: number
 }
 
+/** Shape returned by /api/friends for each friend (and me). Matches the
+ * Friend interface used by the Mountain SVG renderer. */
+export interface FriendDTO {
+  id: string
+  name: string
+  initial: string
+  lvl: number
+  xp: number
+  xpMax: number
+  streak: number
+  pct: number       // 0..1, altitude on the mountain
+  xJitter: number   // -1..1, horizontal scatter
+  color: string
+  trend: number
+  you?: boolean
+  habits: number
+  goals: number
+}
+
+export interface StatsSnapshot {
+  habits_done_today: number
+  habits_total: number
+  goals_completed: number
+  goals_active: number
+  diary_entries: number
+  longest_streak: number
+}
+
+export interface InviteResponse {
+  invite_link: string   // https://t.me/<bot>?start=invite_<id>
+  share_url: string     // https://t.me/share/url?url=…
+}
+
 // ─── Endpoints ───────────────────────────────────────────
 export const api = {
   /** Fetch profile + reminders + pricing. Creates the user on first call. */
@@ -93,4 +126,14 @@ export const api = {
   /** Save reminder settings. */
   setReminders: (cfg: RemindersConfig) =>
     call<RemindersConfig>('/api/reminders', { set: true, ...cfg }),
+
+  /** Push a snapshot of my activity counters — feeds the friends mountain. */
+  pushStats: (s: StatsSnapshot) =>
+    call<{ ok: boolean; xp: number; lvl: number }>('/api/stats', s as any),
+
+  /** List my friends + me with their stats. First element is always me. */
+  getFriends: () => call<{ friends: FriendDTO[] }>('/api/friends'),
+
+  /** Generate a t.me deep-link that auto-friends the receiver on /start. */
+  createInvite: () => call<InviteResponse>('/api/friends/invite'),
 }

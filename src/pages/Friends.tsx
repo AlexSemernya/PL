@@ -10,44 +10,18 @@
  * Data is still mocked — when the bot exposes /api/friends we'll swap FRIENDS
  * for a real fetch (same shape).
  */
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { CalendarHeader } from '../components/CalendarHeader'
 import { Icon } from '../components/Icons'
 import { TickRow } from '../components/Widgets'
 import { haptic } from '../lib/haptic'
+import { useFriends } from '../lib/useFriends'
+import { api, type FriendDTO as Friend } from '../lib/botApi'
 
 interface Props {
   selectedDate: string
   onDateChange: (d: string) => void
 }
-
-interface Friend {
-  id: string
-  name: string
-  initial: string
-  lvl: number
-  xp: number
-  xpMax: number
-  streak: number
-  pct: number       // 0 = base, 1 = summit
-  xJitter: number   // -1..1, horizontal scatter on the slope
-  color: string
-  trend: number
-  you?: boolean
-  habits: number
-  goals: number
-}
-
-const FRIENDS: Friend[] = [
-  { id: 'me',    name: 'Ты',      initial: 'А', lvl: 18, xp: 4250, xpMax: 5000, streak: 12, pct: 0.62, xJitter:  0,    color: 'var(--accent)', trend: +2, you: true, habits: 5, goals: 2 },
-  { id: 'leo',   name: 'Лео',     initial: 'Л', lvl: 23, xp: 6890, xpMax: 7000, streak: 47, pct: 0.88, xJitter:  0.25, color: 'var(--cyan)',   trend: +1, habits: 7, goals: 4 },
-  { id: 'sasha', name: 'Саша Б.', initial: 'С', lvl: 20, xp: 5200, xpMax: 6000, streak:  9, pct: 0.74, xJitter: -0.30, color: 'var(--violet)', trend:  0, habits: 6, goals: 3 },
-  { id: 'mira',  name: 'Мира',    initial: 'М', lvl: 15, xp: 3120, xpMax: 4000, streak: 28, pct: 0.50, xJitter:  0.45, color: 'var(--pink)',   trend: +3, habits: 4, goals: 2 },
-  { id: 'tim',   name: 'Тим',     initial: 'Т', lvl: 12, xp: 1800, xpMax: 3000, streak:  5, pct: 0.32, xJitter: -0.50, color: 'var(--warn)',   trend: -1, habits: 3, goals: 1 },
-  { id: 'jan',   name: 'Яна',     initial: 'Я', lvl:  8, xp:  760, xpMax: 1500, streak:  2, pct: 0.18, xJitter:  0.65, color: 'var(--good)',   trend: +1, habits: 2, goals: 1 },
-]
-
-const RANKED = [...FRIENDS].sort((a, b) => b.pct - a.pct)
 
 // ─── Mountain geometry ──────────────────────────────────────
 const MTN_W = 362
@@ -355,11 +329,37 @@ function FriendRow({ f, active, onClick }: { f: Friend; active: boolean; onClick
 }
 
 // ─── Screen ─────────────────────────────────────────────────
+async function shareInviteLink() {
+  try {
+    haptic('medium')
+    const inv = await api.createInvite()
+    const tg = window.Telegram?.WebApp as any
+    // Prefer Telegram's native share sheet if available
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(inv.share_url)
+    } else if (navigator.share) {
+      await navigator.share({ url: inv.invite_link, text: 'Давай вместе в LifeOS' })
+    } else {
+      await navigator.clipboard.writeText(inv.invite_link)
+      alert('Ссылка скопирована — отправь её другу в Telegram.')
+    }
+  } catch (e) {
+    haptic('error')
+    alert(`Не получилось создать приглашение: ${(e as Error).message}`)
+  }
+}
+
 export function Friends({ selectedDate, onDateChange }: Props) {
-  const [focus, setFocus] = useState('leo')
+  const { data: friends, loading, error, reload } = useFriends()
+  const [focus, setFocus] = useState<string | null>(null)
   const [seg, setSeg] = useState<'Гора' | 'Лига'>('Гора')
-  const focused = FRIENDS.find((f) => f.id === focus) ?? FRIENDS[0]
-  const myRank = RANKED.findIndex((f) => f.you) + 1
+
+  const list: Friend[] = friends ?? []
+  const ranked = useMemo(() => [...list].sort((a, b) => b.pct - a.pct), [list])
+  const me = list.find((f) => f.you) ?? list[0]
+  const friendsCount = list.filter((f) => !f.you).length
+  const myRank = ranked.findIndex((f) => f.you) + 1 || 1
+  const focused = list.find((f) => f.id === focus) ?? me
 
   return (
     <>
@@ -368,13 +368,29 @@ export function Friends({ selectedDate, onDateChange }: Props) {
         <div className="w-row between" style={{ padding: '4px 4px 14px' }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Друзья</div>
-            <div className="w-sub">{FRIENDS.length} человек · ты #{myRank} из {FRIENDS.length}</div>
+            <div className="w-sub">
+              {friendsCount > 0
+                ? `${friendsCount} друзей · ты #${myRank} из ${list.length}`
+                : 'У тебя пока нет друзей — пригласи первого'}
+            </div>
           </div>
           <button className="fab" style={{ width: 'auto', padding: '10px 14px', borderRadius: 14 }}
-                  onClick={() => haptic('medium')}>
+                  onClick={shareInviteLink}>
             <Icon name="plus" size={14} color="#0a0a0b" stroke={2.6} />
           </button>
         </div>
+
+        {loading && !friends && (
+          <div className="widget" style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+            Загружаю друзей…
+          </div>
+        )}
+        {error && (
+          <div className="widget" style={{ color: 'var(--red)', fontSize: 12, marginBottom: 8 }}>
+            Не получилось: {error}
+            <button className="a" style={{ marginLeft: 8 }} onClick={() => reload()}>повторить</button>
+          </div>
+        )}
 
         {/* Mountain card */}
         <div className="widget" style={{ marginBottom: 8, padding: '14px 12px 12px' }}>
@@ -390,38 +406,40 @@ export function Friends({ selectedDate, onDateChange }: Props) {
 
           {seg === 'Гора' ? (
             <>
-              <MountainMap friends={FRIENDS} focus={focus} onFocus={setFocus} />
+              <MountainMap friends={list} focus={focus ?? me?.id ?? ''} onFocus={setFocus} />
               {/* Focused friend bar */}
-              <div className="w-row" style={{
-                marginTop: 8, padding: '10px 12px',
-                background: 'var(--panel-2)', borderRadius: 14, gap: 12,
-              }}>
-                <div className="avatar" style={{
-                  background: focused.color, color: '#0a0a0b', width: 36, height: 36, fontSize: 14,
-                }}>{focused.initial}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="w-row between" style={{ marginBottom: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>
-                      {focused.name}
-                      {focused.you && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--accent)' }}>· это ты</span>}
-                    </span>
-                    <span className="num" style={{ fontSize: 12, fontWeight: 600, color: focused.color }}>
-                      L{focused.lvl} · {Math.round(focused.pct * 100)}%
-                    </span>
+              {focused && (
+                <div className="w-row" style={{
+                  marginTop: 8, padding: '10px 12px',
+                  background: 'var(--panel-2)', borderRadius: 14, gap: 12,
+                }}>
+                  <div className="avatar" style={{
+                    background: focused.color, color: '#0a0a0b', width: 36, height: 36, fontSize: 14,
+                  }}>{focused.initial}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="w-row between" style={{ marginBottom: 4 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>
+                        {focused.name}
+                        {focused.you && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--accent)' }}>· это ты</span>}
+                      </span>
+                      <span className="num" style={{ fontSize: 12, fontWeight: 600, color: focused.color }}>
+                        L{focused.lvl} · {Math.round(focused.pct * 100)}%
+                      </span>
+                    </div>
+                    <div className="h-progress" style={{ height: 4 }}>
+                      <span style={{ width: `${focused.pct * 100}%`, background: focused.color }} />
+                    </div>
                   </div>
-                  <div className="h-progress" style={{ height: 4 }}>
-                    <span style={{ width: `${focused.pct * 100}%`, background: focused.color }} />
-                  </div>
+                  <Icon name="arrow-r" size={16} color="var(--text-faint)" />
                 </div>
-                <Icon name="arrow-r" size={16} color="var(--text-faint)" />
-              </div>
+              )}
             </>
           ) : (
             <div style={{ padding: '8px 4px 4px' }}>
-              {RANKED.map((f, i) => (
+              {ranked.map((f, i) => (
                 <div key={f.id} className="w-row" style={{
                   padding: '10px 8px', gap: 12,
-                  borderBottom: i < RANKED.length - 1 ? '1px dashed var(--line)' : 'none',
+                  borderBottom: i < ranked.length - 1 ? '1px dashed var(--line)' : 'none',
                 }}>
                   <span className="num" style={{ width: 22, fontSize: 13, fontWeight: 700,
                     color: i < 3 ? 'var(--accent)' : 'var(--text-faint)' }}>
@@ -462,20 +480,24 @@ export function Friends({ selectedDate, onDateChange }: Props) {
             <div className="w-title accent">◆ ТВОЙ РАНГ</div>
             <div className="w-row baseline" style={{ gap: 4, marginTop: 8, marginBottom: 6 }}>
               <span className="w-big">{myRank}</span>
-              <span className="w-unit">/ {FRIENDS.length}</span>
+              <span className="w-unit">/ {list.length || 1}</span>
             </div>
-            <div className="w-label">↑ +2 за неделю</div>
+            <div className="w-label">
+              {me ? `XP: ${me.xp.toLocaleString('ru-RU')}` : '—'}
+            </div>
             <div className="h-progress" style={{ height: 4, marginTop: 10 }}>
-              <span style={{ width: '62%' }} />
+              <span style={{ width: `${me ? me.pct * 100 : 0}%` }} />
             </div>
           </div>
           <div className="widget tight">
-            <div className="w-title cyan"><Icon name="star" size={11} color="var(--cyan)" /> ДО L19</div>
+            <div className="w-title cyan">
+              <Icon name="star" size={11} color="var(--cyan)" /> ДО L{(me?.lvl ?? 0) + 1}
+            </div>
             <div className="w-row baseline" style={{ gap: 4, marginTop: 8, marginBottom: 6 }}>
-              <span className="w-big">750</span>
+              <span className="w-big">{me ? Math.max(0, me.xpMax - me.xp) : 0}</span>
               <span className="w-unit">XP</span>
             </div>
-            <div className="w-label">~3 дня</div>
+            <div className="w-label">Чтобы получить новый уровень</div>
             <TickRow values={[200, 320, 180, 260, 340, 200, 290]} color="var(--accent)" height={20} />
           </div>
         </div>
@@ -483,14 +505,20 @@ export function Friends({ selectedDate, onDateChange }: Props) {
         {/* List */}
         <div className="sec-h">
           <span className="t">Все друзья</span>
-          <button className="a" onClick={() => haptic('medium')}>пригласить →</button>
+          <button className="a" onClick={shareInviteLink}>пригласить →</button>
         </div>
 
-        {RANKED.map((f) => (
-          <FriendRow key={f.id} f={f} active={f.id === focus} onClick={() => { setFocus(f.id); haptic('select') }} />
-        ))}
+        {ranked.length === 0 && !loading ? (
+          <div className="widget" style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13, padding: 24 }}>
+            Пока никого нет. Пригласи друга, чтобы вместе вести привычки и видеть прогресс друг друга.
+          </div>
+        ) : (
+          ranked.map((f) => (
+            <FriendRow key={f.id} f={f} active={f.id === (focus ?? me?.id)} onClick={() => { setFocus(f.id); haptic('select') }} />
+          ))
+        )}
 
-        <button className="fab ghost" style={{ marginTop: 14 }} onClick={() => haptic('medium')}>
+        <button className="fab ghost" style={{ marginTop: 14 }} onClick={shareInviteLink}>
           <Icon name="plus" size={14} /> Пригласить друга
         </button>
       </div>
