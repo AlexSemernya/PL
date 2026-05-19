@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { runStorageSelfTest, type SelfTestResult } from '../lib/storageSelfTest'
 
-/**
- * Tiny on-screen indicator that flashes when state is persisted.
- * Useful for diagnosing persistence problems in real time.
- *
- * Toggle visibility with: tap the LifeOS logo 5 times quickly.
- */
+// Bumped on every diagnostic build so you can confirm the new JS actually loaded.
+export const BUILD_TAG = 'v1.0.4-debug'
+
 interface Stats {
   reads: number
   writes: number
@@ -13,46 +11,48 @@ interface Stats {
   idb: boolean
   ls: boolean
   lastWriteAt?: number
+  lastError?: string
 }
 
-const KEY = 'lifeos.debugOverlay'
+/**
+ * Permanent on-screen storage diagnostic panel. Visible by default — once we
+ * confirm persistence works on the user's device we can hide it behind a flag.
+ */
+// Stub kept for backwards compatibility — the indicator is now always visible,
+// so the 5-tap secret is a no-op. We keep the export so CalendarHeader's import
+// doesn't break.
+export function useSecretTapHandler(): () => void {
+  return () => { /* noop */ }
+}
 
 export function StorageIndicator() {
-  const [visible, setVisible] = useState<boolean>(() => {
-    try { return localStorage.getItem(KEY) === '1' } catch { return false }
-  })
   const [stats, setStats] = useState<Stats>({ reads: 0, writes: 0, cloud: false, idb: false, ls: false })
+  const [test, setTest] = useState<SelfTestResult | null>(null)
   const [flash, setFlash] = useState(false)
-  const lastWriteRef = useRef(0)
+  const [lastWrite, setLastWrite] = useState(0)
 
+  // Run a write/read test once at boot.
   useEffect(() => {
-    // listen for the secret 5-tap on brand logo
-    const onSecret = () => {
-      setVisible((v) => {
-        const next = !v
-        try { localStorage.setItem(KEY, next ? '1' : '0') } catch { /* noop */ }
-        return next
-      })
-    }
-    window.addEventListener('lifeos-debug-toggle', onSecret)
-    return () => window.removeEventListener('lifeos-debug-toggle', onSecret)
+    runStorageSelfTest().then(setTest)
   }, [])
 
+  // Poll the global stats every 250ms for the live writes/reads counter.
   useEffect(() => {
     const id = setInterval(() => {
       const s = (globalThis as any).__lifeosStorageStats__ as Stats | undefined
       if (!s) return
       setStats({ ...s })
-      if (s.lastWriteAt && s.lastWriteAt !== lastWriteRef.current) {
-        lastWriteRef.current = s.lastWriteAt
+      if (s.lastWriteAt && s.lastWriteAt !== lastWrite) {
+        setLastWrite(s.lastWriteAt)
         setFlash(true)
         setTimeout(() => setFlash(false), 600)
       }
     }, 250)
     return () => clearInterval(id)
-  }, [])
+  }, [lastWrite])
 
-  if (!visible) return null
+  const dotColor = (s: 'pass' | 'fail' | 'skip' | undefined) =>
+    s === 'pass' ? 'var(--good)' : s === 'fail' ? 'var(--red)' : 'var(--text-faint)'
 
   return (
     <div
@@ -60,38 +60,29 @@ export function StorageIndicator() {
         position: 'fixed',
         top: 'calc(8px + var(--safe-top))',
         right: 8,
-        zIndex: 999,
-        padding: '6px 8px',
-        borderRadius: 8,
-        background: flash ? 'var(--accent)' : 'rgba(20,21,24,0.85)',
+        zIndex: 9999,
+        padding: '6px 9px',
+        borderRadius: 10,
+        background: flash ? 'var(--accent)' : 'rgba(20,21,24,0.92)',
         color: flash ? '#0a0a0b' : 'var(--text-dim)',
-        fontSize: 10,
-        fontFamily: 'SF Mono, monospace',
-        lineHeight: 1.3,
+        fontSize: 9,
+        fontFamily: 'SF Mono, ui-monospace, monospace',
+        lineHeight: 1.4,
         pointerEvents: 'none',
         border: '1px solid var(--line)',
         transition: 'background 0.2s, color 0.2s',
+        textTransform: 'lowercase',
+        letterSpacing: '0.02em',
+        minWidth: 92,
       }}
     >
-      <div>w {stats.writes} · r {stats.reads}</div>
-      <div>
-        <span style={{ color: stats.cloud ? 'var(--good)' : 'var(--red)' }}>cloud</span>{' '}
-        <span style={{ color: stats.idb ? 'var(--good)' : 'var(--red)' }}>idb</span>{' '}
-        <span style={{ color: stats.ls ? 'var(--good)' : 'var(--red)' }}>ls</span>
+      <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{BUILD_TAG}</div>
+      <div>writes {stats.writes} · reads {stats.reads}</div>
+      <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+        <span><span style={{ color: dotColor(test?.cloud) }}>●</span> cloud</span>
+        <span><span style={{ color: dotColor(test?.idb) }}>●</span> idb</span>
+        <span><span style={{ color: dotColor(test?.ls) }}>●</span> ls</span>
       </div>
     </div>
   )
-}
-
-// Helper used by the brand logo to toggle the indicator via 5 quick taps.
-export function useSecretTapHandler() {
-  const tapsRef = useRef<number[]>([])
-  return () => {
-    const now = Date.now()
-    tapsRef.current = [...tapsRef.current.filter((t) => now - t < 2000), now]
-    if (tapsRef.current.length >= 5) {
-      tapsRef.current = []
-      window.dispatchEvent(new Event('lifeos-debug-toggle'))
-    }
-  }
 }
