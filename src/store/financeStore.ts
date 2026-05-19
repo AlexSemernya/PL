@@ -64,7 +64,7 @@ export const useFinanceStore = create<FinanceState>()(
       },
     }),
     {
-      name: 'lifeos.finance',
+      name: 'lifeos_finance',
       storage: createTelegramStorage<FinanceState>(),
       partialize: (s) => ({ entries: s.entries, goals: s.goals } as FinanceState),
       onRehydrateStorage: () => (state) => {

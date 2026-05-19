@@ -139,21 +139,58 @@ const lsRemove = (k: string): void => {
 }
 
 // ─── StateStorage facade ──────────────────────────────────────────
+async function readFromAllLayers(name: string): Promise<{ value: string; from: 'cloud' | 'idb' | 'ls' } | null> {
+  if (cloudOk()) {
+    const v = await cloudGet(name)
+    if (v !== null) { stats.cloud = true; return { value: v, from: 'cloud' } }
+  }
+  const idb = await idbGet(name)
+  if (idb !== null) { stats.idb = true; return { value: idb, from: 'idb' } }
+  const ls = lsGet(name)
+  if (ls !== null) { stats.ls = true; return { value: ls, from: 'ls' } }
+  return null
+}
+
 const stateStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     stats.reads++
     stats.lastReadKey = name
-    // 1) CloudStorage (source of truth across devices)
-    if (cloudOk()) {
-      const v = await cloudGet(name)
-      if (v !== null) { stats.cloud = true; stats.lastReadFrom = 'cloud'; return v }
+
+    // Try new underscore-key first
+    const fresh = await readFromAllLayers(name)
+    if (fresh) {
+      stats.lastReadFrom = fresh.from
+      return fresh.value
     }
-    // 2) IDB
-    const idb = await idbGet(name)
-    if (idb !== null) { stats.idb = true; stats.lastReadFrom = 'idb'; return idb }
-    // 3) localStorage
-    const ls = lsGet(name)
-    if (ls !== null) { stats.ls = true; stats.lastReadFrom = 'ls'; return ls }
+
+    // Fallback: try the legacy dot-key (e.g. lifeos_habits → lifeos.habits)
+    // and migrate the value to the new key so future reads/writes work.
+    const legacyName = name.replace(/^lifeos_/, 'lifeos.')
+    if (legacyName !== name) {
+      const legacy = await readFromAllLayers(legacyName)
+      if (legacy) {
+        console.log('[LifeOS] migrating legacy key', legacyName, '→', name)
+        // Write to new key (all layers)
+        lsSet(name, legacy.value)
+        await idbSet(name, legacy.value).catch(() => undefined)
+        if (cloudOk() && legacy.value.length <= CLOUD_VALUE_LIMIT) {
+          await cloudSetWithTimeout(name, legacy.value).catch(() => undefined)
+        }
+        // Clean up legacy key in IDB & LS (cloud doesn't matter — it was never written there
+        // because dot-keys were rejected with storage_key_invalid)
+        lsRemove(legacyName)
+        const db = await openIdb()
+        if (db) {
+          try {
+            const tx = db.transaction(IDB_STORE, 'readwrite')
+            tx.objectStore(IDB_STORE).delete(legacyName)
+          } catch { /* noop */ }
+        }
+        stats.lastReadFrom = legacy.from
+        return legacy.value
+      }
+    }
+
     stats.lastReadFrom = 'none'
     return null
   },

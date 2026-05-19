@@ -67,7 +67,7 @@ export const useHabitsStore = create<HabitsState>()(
       },
     }),
     {
-      name: 'lifeos.habits',
+      name: 'lifeos_habits',
       storage: createTelegramStorage<HabitsState>(),
       partialize: (s) => ({ habits: s.habits } as HabitsState),
       onRehydrateStorage: () => (state) => {

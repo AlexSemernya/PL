@@ -68,7 +68,7 @@ export const useGoalsStore = create<GoalsState>()(
       },
     }),
     {
-      name: 'lifeos.goals',
+      name: 'lifeos_goals',
       storage: createTelegramStorage<GoalsState>(),
       partialize: (s) => ({ goals: s.goals } as GoalsState),
       onRehydrateStorage: () => (state) => {

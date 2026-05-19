@@ -60,7 +60,7 @@ export const useDiaryStore = create<DiaryState>()(
       },
     }),
     {
-      name: 'lifeos.diary',
+      name: 'lifeos_diary',
       storage: createTelegramStorage<DiaryState>(),
       partialize: (s) => ({ entries: s.entries } as DiaryState),
       onRehydrateStorage: () => (state) => {
