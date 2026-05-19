@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import dayjs from 'dayjs'
 import { createTelegramStorage } from '../lib/telegramStorage'
+import { uid } from '../lib/uid'
 import type { FinanceEntry, FinanceGoal, FinanceType } from '../types'
 
 interface FinanceState {
@@ -26,14 +27,14 @@ export const useFinanceStore = create<FinanceState>()(
       hydrated: false,
 
       addEntry: (e) => {
-        const entry: FinanceEntry = { ...e, id: crypto.randomUUID(), createdAt: dayjs().toISOString() }
+        const entry: FinanceEntry = { ...e, id: uid(), createdAt: dayjs().toISOString() }
         set((s) => ({ entries: [...s.entries, entry] }))
       },
 
       removeEntry: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
 
       addGoal: (g) => {
-        const goal: FinanceGoal = { ...g, id: crypto.randomUUID(), createdAt: dayjs().toISOString() }
+        const goal: FinanceGoal = { ...g, id: uid(), createdAt: dayjs().toISOString() }
         set((s) => ({ goals: [...s.goals, goal] }))
       },
 

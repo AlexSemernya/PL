@@ -6,7 +6,7 @@ import {
   type CrossSessionResult,
 } from '../lib/storageSelfTest'
 
-export const BUILD_TAG = 'v1.0.5-debug'
+export const BUILD_TAG = 'v1.0.6-debug'
 
 interface Stats {
   reads: number
@@ -14,7 +14,9 @@ interface Stats {
   cloud: boolean
   idb: boolean
   ls: boolean
+  lastWriteKey?: string
   lastWriteAt?: number
+  lastError?: string
 }
 
 export function useSecretTapHandler(): () => void {
@@ -80,6 +82,16 @@ export function StorageIndicator() {
     >
       <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{BUILD_TAG}</div>
       <div>w {stats.writes} · r {stats.reads}</div>
+      {stats.lastWriteKey && (
+        <div style={{ color: 'var(--good)', wordBreak: 'break-all' }}>
+          last: {stats.lastWriteKey.replace('lifeos.', '')}
+        </div>
+      )}
+      {stats.lastError && (
+        <div style={{ color: 'var(--red)', wordBreak: 'break-all', marginTop: 2 }}>
+          err: {stats.lastError.slice(0, 60)}
+        </div>
+      )}
 
       <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--line)' }}>
         <div style={{ fontWeight: 600, color: 'var(--text)' }}>self-test (now):</div>

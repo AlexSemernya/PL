@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import dayjs from 'dayjs'
 import { createTelegramStorage } from '../lib/telegramStorage'
+import { uid } from '../lib/uid'
 import type { DiaryEntry } from '../types'
 
 interface DiaryState {
@@ -23,7 +24,7 @@ export const useDiaryStore = create<DiaryState>()(
       hydrated: false,
 
       addEntry: (e) => {
-        const entry: DiaryEntry = { ...e, id: crypto.randomUUID(), createdAt: dayjs().toISOString() }
+        const entry: DiaryEntry = { ...e, id: uid(), createdAt: dayjs().toISOString() }
         set((s) => ({ entries: [...s.entries, entry] }))
       },
 

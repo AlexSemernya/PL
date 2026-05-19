@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import dayjs from 'dayjs'
 import { createTelegramStorage } from '../lib/telegramStorage'
+import { uid } from '../lib/uid'
 import type { Goal, GoalStep } from '../types'
 
 interface GoalsState {
@@ -25,7 +26,7 @@ export const useGoalsStore = create<GoalsState>()(
       addGoal: (g) => {
         const goal: Goal = {
           ...g,
-          id: crypto.randomUUID(),
+          id: uid(),
           steps: [],
           completed: false,
           createdAt: dayjs().toISOString(),
@@ -42,7 +43,7 @@ export const useGoalsStore = create<GoalsState>()(
         set((s) => ({ goals: s.goals.map((g) => (g.id === id ? { ...g, ...updates } : g)) })),
 
       addStep: (goalId, title) => {
-        const step: GoalStep = { id: crypto.randomUUID(), title, done: false }
+        const step: GoalStep = { id: uid(), title, done: false }
         set((s) => ({
           goals: s.goals.map((g) => (g.id === goalId ? { ...g, steps: [...g.steps, step] } : g)),
         }))

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import dayjs from 'dayjs'
 import { createTelegramStorage } from '../lib/telegramStorage'
+import { uid } from '../lib/uid'
 import type { Habit } from '../types'
 
 interface HabitsState {
@@ -24,7 +25,7 @@ export const useHabitsStore = create<HabitsState>()(
       addHabit: (h) => {
         const habit: Habit = {
           ...h,
-          id: crypto.randomUUID(),
+          id: uid(),
           completedDates: [],
           createdAt: dayjs().toISOString(),
         }
