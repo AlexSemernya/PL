@@ -180,9 +180,9 @@ svg, [role="button"] { -webkit-tap-highlight-color: transparent; }
 .tick-row { display: flex; align-items: end; gap: 2px; height: 36px; width: 100%; }
 .tick { flex: 1; border-radius: 1px; min-height: 2px; }
 
-.ring { position: relative; width: var(--ring-size, 60px); height: var(--ring-size, 60px); }
-.ring svg { display: block; }
-.ring .label {
+.lifeos-ring { position: relative; width: var(--ring-size, 60px); height: var(--ring-size, 60px); }
+.lifeos-ring svg { display: block; }
+.lifeos-ring .label {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
 }

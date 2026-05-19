@@ -95,8 +95,8 @@ export function Ring({
   const c = 2 * Math.PI * r
   const off = c * (1 - Math.min(1, Math.max(0, value)))
   return (
-    <div className="ring" style={{ ['--ring-size' as string]: `${size}px` } as CSSProperties}>
-      <svg width={size} height={size}>
+    <div className="lifeos-ring" style={{ ['--ring-size' as string]: `${size}px` } as CSSProperties}>
+      <svg width={size} height={size} focusable="false" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}

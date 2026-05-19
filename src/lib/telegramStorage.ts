@@ -1,117 +1,103 @@
 /**
- * Telegram CloudStorage adapter for Zustand persist middleware.
+ * Telegram CloudStorage adapter for Zustand `persist` middleware.
  *
- * - Inside Telegram: persists to Telegram cloud → syncs across user's devices.
- * - Outside Telegram (preview/web): falls back to localStorage.
+ * - Persists state to Telegram CloudStorage (syncs across user's devices).
+ * - Also writes a parallel copy to localStorage as a fast local cache.
+ *   This protects against the case where the user closes the Mini App
+ *   before our async CloudStorage write completes — on next open we'll
+ *   still see the latest data from localStorage while CloudStorage catches up.
+ * - On read, we prefer CloudStorage (cross-device truth) and fall back to
+ *   localStorage if cloud is empty or unavailable.
+ * - Outside Telegram (web preview), only localStorage is used.
  *
  * Telegram limits: key ≤ 128 chars, value ≤ 4096 chars, up to 1024 keys.
- * For larger state we transparently shard across keys `{name}__0`, `{name}__1`, ...
+ * Larger payloads are transparently sharded as `{name}__0`, `{name}__1`, …
  */
 import type { PersistStorage, StorageValue } from 'zustand/middleware'
 
-const CHUNK_LIMIT = 4000 // safety margin under Telegram's 4096-char value cap
+const CHUNK = 4000
 
 const isTelegram = (): boolean =>
   typeof window !== 'undefined' && !!window.Telegram?.WebApp?.CloudStorage
-
 const cloud = () => window.Telegram!.WebApp!.CloudStorage!
 
-// ─── low-level get/set (chunked, with localStorage fallback) ─────────
-async function rawGet(key: string): Promise<string | null> {
-  if (!isTelegram()) {
-    try { return localStorage.getItem(key) } catch { return null }
-  }
-  // try chunked first
-  const head = await getOne(`${key}__0`)
+// ───────── low-level localStorage (safe wrappers) ─────────
+const lsGet = (k: string): string | null => {
+  try { return localStorage.getItem(k) } catch { return null }
+}
+const lsSet = (k: string, v: string): void => {
+  try { localStorage.setItem(k, v) } catch { /* quota / privacy mode */ }
+}
+const lsRemove = (k: string): void => {
+  try { localStorage.removeItem(k) } catch { /* noop */ }
+}
+
+// ───────── low-level CloudStorage (per-key, promise-wrapped) ─────────
+const cloudGet = (k: string): Promise<string | null> =>
+  new Promise((resolve) => {
+    try {
+      cloud().getItem(k, (err, value) => {
+        if (err || value === undefined || value === null || value === '') resolve(null)
+        else resolve(value)
+      })
+    } catch { resolve(null) }
+  })
+
+const cloudSet = (k: string, v: string): Promise<void> =>
+  new Promise((resolve) => {
+    try { cloud().setItem(k, v, () => resolve()) } catch { resolve() }
+  })
+
+const cloudRemove = (k: string): Promise<void> =>
+  new Promise((resolve) => {
+    try { cloud().removeItem(k, () => resolve()) } catch { resolve() }
+  })
+
+// ───────── chunked read/write ─────────
+async function readChunked(name: string): Promise<string | null> {
+  // Try chunked first.
+  const head = await cloudGet(`${name}__0`)
   if (head !== null) {
     const parts: string[] = [head]
-    let i = 1
-    // collect until we miss a chunk
-    while (true) {
-      const next = await getOne(`${key}__${i}`)
+    for (let i = 1; i < 256; i++) {
+      const next = await cloudGet(`${name}__${i}`)
       if (next === null) break
       parts.push(next)
-      i++
-      if (i > 256) break // hard safety cap
     }
     return parts.join('')
   }
-  // fallback to single-key value (legacy data)
-  return await getOne(key)
+  // Legacy single-key fallback.
+  return await cloudGet(name)
 }
 
-function getOne(key: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    try {
-      cloud().getItem(key, (err, value) => {
-        if (err || value === undefined || value === '') resolve(null)
-        else resolve(value)
-      })
-    } catch {
-      resolve(null)
-    }
-  })
-}
-
-async function rawSet(key: string, value: string): Promise<void> {
-  if (!isTelegram()) {
-    try { localStorage.setItem(key, value) } catch {}
-    return
-  }
-  // split into chunks of CHUNK_LIMIT chars
+async function writeChunked(name: string, value: string): Promise<void> {
   const chunks: string[] = []
-  for (let i = 0; i < value.length; i += CHUNK_LIMIT) {
-    chunks.push(value.slice(i, i + CHUNK_LIMIT))
+  for (let i = 0; i < value.length; i += CHUNK) chunks.push(value.slice(i, i + CHUNK))
+  // Write all in parallel.
+  await Promise.all(chunks.map((c, i) => cloudSet(`${name}__${i}`, c)))
+  // Clean up any leftover chunks from a previously larger payload.
+  for (let i = chunks.length; i < chunks.length + 4; i++) {
+    await cloudRemove(`${name}__${i}`)
   }
-  // write chunks
-  await Promise.all(chunks.map((c, idx) => setOne(`${key}__${idx}`, c)))
-  // remove any leftover chunks from previous larger state
-  // (best-effort — Telegram doesn't expose a key-prefix delete)
-  for (let idx = chunks.length; idx < chunks.length + 4; idx++) {
-    await removeOne(`${key}__${idx}`)
-  }
-  // also clear legacy single-key
-  await removeOne(key)
+  // Also delete any legacy single-key copy.
+  await cloudRemove(name)
 }
 
-function setOne(key: string, value: string): Promise<void> {
-  return new Promise((resolve) => {
-    try {
-      cloud().setItem(key, value, () => resolve())
-    } catch {
-      try { localStorage.setItem(key, value) } catch {}
-      resolve()
-    }
-  })
+async function removeChunked(name: string): Promise<void> {
+  for (let i = 0; i < 256; i++) await cloudRemove(`${name}__${i}`)
+  await cloudRemove(name)
 }
 
-function removeOne(key: string): Promise<void> {
-  return new Promise((resolve) => {
-    try {
-      cloud().removeItem(key, () => resolve())
-    } catch {
-      try { localStorage.removeItem(key) } catch {}
-      resolve()
-    }
-  })
-}
-
-async function rawRemove(key: string): Promise<void> {
-  if (!isTelegram()) {
-    try { localStorage.removeItem(key) } catch {}
-    return
-  }
-  for (let i = 0; i < 256; i++) {
-    await removeOne(`${key}__${i}`)
-  }
-  await removeOne(key)
-}
-
-// ─── Zustand v4 PersistStorage<T> with JSON (de)serialization ────────
+// ───────── PersistStorage<T> ─────────
 export function createTelegramStorage<T>(): PersistStorage<T> {
   return {
     getItem: async (name) => {
-      const raw = await rawGet(name)
+      // Prefer cloud (cross-device truth), fall back to local cache.
+      let raw: string | null = null
+      if (isTelegram()) {
+        raw = await readChunked(name)
+      }
+      if (raw === null) raw = lsGet(name)
       if (raw === null) return null
       try {
         return JSON.parse(raw) as StorageValue<T>
@@ -120,10 +106,18 @@ export function createTelegramStorage<T>(): PersistStorage<T> {
       }
     },
     setItem: async (name, value) => {
-      await rawSet(name, JSON.stringify(value))
+      const raw = JSON.stringify(value)
+      // 1) Synchronous local cache — survives even if user closes the app
+      //    before the async cloud write completes.
+      lsSet(name, raw)
+      // 2) Cloud write (async, syncs across devices).
+      if (isTelegram()) {
+        await writeChunked(name, raw)
+      }
     },
     removeItem: async (name) => {
-      await rawRemove(name)
+      lsRemove(name)
+      if (isTelegram()) await removeChunked(name)
     },
   }
 }

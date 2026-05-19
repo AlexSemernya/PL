@@ -11,7 +11,7 @@ import { Habits } from './pages/Habits'
 import { Goals } from './pages/Goals'
 import { Finance } from './pages/Finance'
 import { Diary } from './pages/Diary'
-import { runMigrations } from './lib/migrations'
+// Migrations module is intentionally not imported — see migrations.ts comments.
 import type { TabId } from './types'
 
 dayjs.extend(isoWeek)
@@ -49,9 +49,15 @@ export default function App() {
     }
   }, [])
 
-  // ─── One-shot migrations (wipe demo data, etc.) ───
+  // ─── Debug: log storage availability on boot (visible in Telegram dev tools) ───
   useEffect(() => {
-    void runMigrations()
+    const tg = window.Telegram?.WebApp
+    console.log('[LifeOS] boot', {
+      telegram: !!tg,
+      cloudStorage: !!tg?.CloudStorage,
+      version: (tg as any)?.version,
+      platform: (tg as any)?.platform,
+    })
   }, [])
 
   const pageProps = { selectedDate, onDateChange: setSelectedDate }

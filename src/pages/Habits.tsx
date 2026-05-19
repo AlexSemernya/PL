@@ -201,7 +201,9 @@ export function Habits({ selectedDate, onDateChange }: Props) {
                 title: data.title ?? 'Без названия',
                 icon: data.icon,
                 color: data.color,
-                frequency: 'daily',
+                frequency: data.frequency ?? 'daily',
+                daysOfWeek: data.daysOfWeek,
+                reminder: data.reminder,
               })
             }
             haptic('success')
@@ -224,6 +226,19 @@ export function Habits({ selectedDate, onDateChange }: Props) {
   )
 }
 
+const DAY_LABELS = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС']
+type FreqMode = 'daily' | 'weekdays' | 'weekends' | 'custom'
+
+function deriveFreqMode(h: Habit | null): FreqMode {
+  if (!h) return 'daily'
+  if (h.frequency === 'daily') return 'daily'
+  const d = h.daysOfWeek ?? []
+  const sortedKey = [...d].sort().join(',')
+  if (sortedKey === '0,1,2,3,4') return 'weekdays'
+  if (sortedKey === '5,6') return 'weekends'
+  return 'custom'
+}
+
 function HabitForm({
   initial,
   onSubmit,
@@ -236,6 +251,22 @@ function HabitForm({
   const [title, setTitle] = useState(initial?.title ?? '')
   const [icon, setIcon] = useState<IconName>((initial?.icon as IconName) ?? 'drop')
   const [color, setColor] = useState(initial?.color ?? '#c6f84e')
+  const [freqMode, setFreqMode] = useState<FreqMode>(deriveFreqMode(initial))
+  const [customDays, setCustomDays] = useState<number[]>(initial?.daysOfWeek ?? [0, 1, 2, 3, 4])
+  const [reminder, setReminder] = useState(initial?.reminder ?? '')
+
+  const toggleDay = (d: number) =>
+    setCustomDays((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d].sort()))
+
+  // derive the final frequency + daysOfWeek to save
+  const buildFreqData = (): Pick<Habit, 'frequency' | 'daysOfWeek'> => {
+    switch (freqMode) {
+      case 'daily':    return { frequency: 'daily' }
+      case 'weekdays': return { frequency: 'weekly', daysOfWeek: [0, 1, 2, 3, 4] }
+      case 'weekends': return { frequency: 'weekly', daysOfWeek: [5, 6] }
+      case 'custom':   return { frequency: 'custom', daysOfWeek: customDays }
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -246,6 +277,63 @@ function HabitForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Например — пробежка"
+          style={fieldInput}
+        />
+      </Field>
+
+      <Field label="Периодичность">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+          {([
+            ['daily',    'Каждый день'],
+            ['weekdays', 'Будни (Пн–Пт)'],
+            ['weekends', 'Выходные (Сб–Вс)'],
+            ['custom',   'Свой график'],
+          ] as const).map(([mode, label]) => {
+            const on = freqMode === mode
+            return (
+              <button
+                key={mode}
+                onClick={() => setFreqMode(mode)}
+                style={{
+                  padding: '12px 10px', borderRadius: 12, border: 0, cursor: 'pointer',
+                  background: on ? 'var(--accent)' : 'var(--panel)',
+                  color: on ? '#0a0a0b' : 'var(--text)',
+                  fontSize: 13, fontWeight: 600, textAlign: 'left',
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        {freqMode === 'custom' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginTop: 10 }}>
+            {DAY_LABELS.map((d, i) => {
+              const on = customDays.includes(i)
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggleDay(i)}
+                  style={{
+                    aspectRatio: '1', borderRadius: 10, border: 0, cursor: 'pointer',
+                    background: on ? 'var(--accent)' : 'var(--panel-2)',
+                    color: on ? '#0a0a0b' : 'var(--text-dim)',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                  }}
+                >
+                  {d}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </Field>
+
+      <Field label="Напоминание (необязательно)">
+        <input
+          type="time"
+          value={reminder}
+          onChange={(e) => setReminder(e.target.value)}
           style={fieldInput}
         />
       </Field>
@@ -288,7 +376,15 @@ function HabitForm({
         className="fab"
         style={{ marginTop: 8 }}
         disabled={!title.trim()}
-        onClick={() => onSubmit({ title: title.trim(), icon, color })}
+        onClick={() =>
+          onSubmit({
+            title: title.trim(),
+            icon,
+            color,
+            ...buildFreqData(),
+            reminder: reminder || undefined,
+          })
+        }
       >
         <Icon name="check" size={14} color="#0a0a0b" stroke={2.6} /> {initial ? 'Сохранить' : 'Создать'}
       </button>

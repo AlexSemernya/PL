@@ -30,7 +30,7 @@ export function Icon({ name, size = 20, color = 'currentColor', stroke = 1.8 }: 
     case 'drop':    return <svg {...p}><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>
     case 'moon':    return <svg {...p}><path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10z"/></svg>
     case 'book2':   return <svg {...p}><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2V5z"/><path d="M8 7h7M8 11h7M8 15h5"/></svg>
-    case 'run':     return <svg {...p}><circle cx="15" cy="4" r="2"/><path d="M9 19l1-4 3-2-2-4-4 2-1 3M14 13l3 2v4"/></svg>
+    case 'run':     return <svg {...p}><circle cx="13" cy="4.5" r="1.6"/><path d="M9 21l3-5 3 1.5 2-5"/><path d="M12 16l-2.5-2.5 3-5 3.5 2 2.5-1"/><path d="M7.5 11l3-1"/></svg>
     case 'bell':    return <svg {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8zM10 21a2 2 0 0 0 4 0"/></svg>
     case 'edit':    return <svg {...p}><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
     case 'mic':     return <svg {...p}><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
