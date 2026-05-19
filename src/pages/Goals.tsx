@@ -8,6 +8,7 @@ import { useGoalsStore } from '../store/goalsStore'
 import { haptic } from '../lib/haptic'
 import type { Goal } from '../types'
 import { Field, fieldInput } from './Habits'
+import type React from 'react'
 
 interface Props {
   selectedDate: string
@@ -15,6 +16,60 @@ interface Props {
 }
 
 const GOAL_COLORS = ['#c6f84e', '#4cd6ff', '#b59cff', '#ff8a3d', '#ff5a8a']
+
+const UNIT_PRESETS = [
+  { unit: '',      label: 'без единиц' },
+  { unit: '%',     label: '%' },
+  { unit: 'раз',   label: 'раз' },
+  { unit: 'дн',    label: 'дни' },
+  { unit: 'км',    label: 'км' },
+  { unit: 'шагов', label: 'шаги' },
+  { unit: 'стр',   label: 'страницы' },
+  { unit: 'мин',   label: 'минуты' },
+  { unit: 'ч',     label: 'часы' },
+  { unit: '₽',     label: '₽' },
+  { unit: '$',     label: '$' },
+] as const
+
+/**
+ * Inline +/- progress steppers. Auto-detects a sensible step from the target
+ * (target/20, min 1, max 10) so a 200km goal bumps by 10 and a 24-book goal
+ * bumps by 1.
+ */
+function ProgressSteppers({
+  goal, onChange, compact = false,
+}: {
+  goal: Goal
+  onChange: (newCurrent: number) => void
+  compact?: boolean
+}) {
+  const target = goal.progressTarget ?? 100
+  const current = goal.progressCurrent ?? 0
+  const rawStep = Math.max(1, Math.round(target / 20))
+  const step = rawStep > 10 ? Math.round(rawStep / 5) * 5 : rawStep
+  const color = goal.color ?? 'var(--accent)'
+  const btn: React.CSSProperties = {
+    flex: 1, padding: compact ? '8px 4px' : '10px 8px', borderRadius: 10,
+    background: 'var(--panel-2)', color, border: 0, cursor: 'pointer',
+    fontSize: compact ? 12 : 13, fontWeight: 700, letterSpacing: '0.02em',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+  }
+  const bump = (delta: number) => {
+    const next = Math.max(0, Math.min(target, current + delta))
+    if (next !== current) {
+      onChange(next)
+      haptic('light')
+    }
+  }
+  return (
+    <div style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+      <button style={btn} onClick={() => bump(-step)}>− {step}</button>
+      <button style={btn} onClick={() => bump(-1)}>−1</button>
+      <button style={btn} onClick={() => bump(+1)}>+1</button>
+      <button style={{ ...btn, background: color, color: '#0a0a0b' }} onClick={() => bump(+step)}>+ {step}</button>
+    </div>
+  )
+}
 
 export function Goals({ selectedDate, onDateChange }: Props) {
   const goals = useGoalsStore((s) => s.goals)
@@ -56,15 +111,16 @@ export function Goals({ selectedDate, onDateChange }: Props) {
         </div>
 
         {featured && (
-          <div className="widget" style={{ marginBottom: 8 }} onClick={() => { setEditing(featured); setOpenAdd(true) }}>
-            <div className="w-head">
+          <div className="widget" style={{ marginBottom: 8 }}>
+            <div className="w-head" onClick={() => { setEditing(featured); setOpenAdd(true) }} style={{ cursor: 'pointer' }}>
               <div className="w-title accent">◆ В ФОКУСЕ</div>
               {featured.endDate && <span className="w-label">{daysLeft(featured.endDate)} дней осталось</span>}
             </div>
-            <div className="w-row" style={{ gap: 14, alignItems: 'center', marginBottom: 14 }}>
+            <div className="w-row" style={{ gap: 14, alignItems: 'center', marginBottom: 14 }}
+                 onClick={() => { setEditing(featured); setOpenAdd(true) }}>
               <Ring value={featuredPct} size={88} stroke={9} color={featured.color ?? 'var(--accent)'}
                     label={`${Math.round(featuredPct * 100)}%`} sublabel="ГОТОВО" />
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, cursor: 'pointer' }}>
                 <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.15 }}>
                   {featured.title}
                 </div>
@@ -84,7 +140,7 @@ export function Goals({ selectedDate, onDateChange }: Props) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 3, marginBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 3, marginBottom: 12 }}>
               {Array.from({ length: 12 }, (_, i) => (
                 <div key={i} style={{
                   flex: 1, height: 8, borderRadius: 2,
@@ -92,6 +148,11 @@ export function Goals({ selectedDate, onDateChange }: Props) {
                 }} />
               ))}
             </div>
+
+            {/* Quick +/- buttons */}
+            {featured.progressTarget !== undefined && featured.progressTarget > 0 && (
+              <ProgressSteppers goal={featured} onChange={(v) => updateGoal(featured.id, { progressCurrent: v })} />
+            )}
           </div>
         )}
 
@@ -101,25 +162,28 @@ export function Goals({ selectedDate, onDateChange }: Props) {
             {active.slice(1).map((g) => {
               const pct = g.progressTarget ? Math.min(1, (g.progressCurrent ?? 0) / g.progressTarget) : 0
               return (
-                <button key={g.id} className="widget tight" style={{ border: 0, cursor: 'pointer', textAlign: 'left' }}
-                        onClick={() => { setEditing(g); setOpenAdd(true) }}>
-                  <div className="w-head">
+                <div key={g.id} className="widget tight">
+                  <div className="w-head" style={{ cursor: 'pointer' }}
+                       onClick={() => { setEditing(g); setOpenAdd(true) }}>
                     <div className="w-title" style={{ color: g.color ?? 'var(--text-dim)' }}>
                       <Icon name="target" size={11} color={g.color ?? 'var(--text-dim)'} /> {g.title.toUpperCase().slice(0, 12)}
                     </div>
                   </div>
                   <div className="w-row baseline" style={{ gap: 4, marginBottom: 8 }}>
                     <span className="w-mid">{g.progressCurrent ?? 0}</span>
-                    {g.progressTarget && <span className="w-unit">/ {g.progressTarget} {g.progressUnit ?? ''}</span>}
+                    {g.progressTarget !== undefined && g.progressTarget > 0 && <span className="w-unit">/ {g.progressTarget} {g.progressUnit ?? ''}</span>}
                   </div>
                   <div className="h-progress" style={{ marginBottom: 8 }}>
                     <span style={{ width: `${pct * 100}%`, background: g.color ?? 'var(--accent)' }} />
                   </div>
-                  <div className="w-row between">
+                  <div className="w-row between" style={{ marginBottom: g.progressTarget ? 8 : 0 }}>
                     <span className="w-label">{Math.round(pct * 100)}%</span>
                     {g.endDate && <span className="w-label">{dayjs(g.endDate).format('D MMM')}</span>}
                   </div>
-                </button>
+                  {g.progressTarget !== undefined && g.progressTarget > 0 && (
+                    <ProgressSteppers goal={g} onChange={(v) => updateGoal(g.id, { progressCurrent: v })} compact />
+                  )}
+                </div>
               )
             })}
           </div>
@@ -228,18 +292,32 @@ function GoalForm({
       <Field label="До какой даты">
         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={fieldInput} />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        <Field label="Текущее">
-          <input type="number" inputMode="numeric" value={progressCurrent}
-                 onChange={(e) => setProgressCurrent(+e.target.value)} style={fieldInput} />
+      <Field label="Единица измерения">
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {UNIT_PRESETS.map((u) => {
+            const on = progressUnit === u.unit
+            return (
+              <button key={u.unit} onClick={() => setProgressUnit(u.unit)}
+                      style={{
+                        padding: '8px 12px', borderRadius: 12, border: 0, cursor: 'pointer',
+                        background: on ? 'var(--accent)' : 'var(--panel)',
+                        color: on ? '#0a0a0b' : 'var(--text)',
+                        fontSize: 13, fontWeight: 600,
+                      }}>
+                {u.label}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <Field label="Сейчас">
+          <input type="number" inputMode="numeric" value={progressCurrent || ''}
+                 onChange={(e) => setProgressCurrent(+e.target.value)} placeholder="0" style={fieldInput} />
         </Field>
-        <Field label="Цель">
-          <input type="number" inputMode="numeric" value={progressTarget}
-                 onChange={(e) => setProgressTarget(+e.target.value)} style={fieldInput} />
-        </Field>
-        <Field label="Ед.">
-          <input type="text" value={progressUnit} onChange={(e) => setProgressUnit(e.target.value)}
-                 placeholder="км" style={fieldInput} />
+        <Field label={progressUnit ? `Цель (${progressUnit})` : 'Цель'}>
+          <input type="number" inputMode="numeric" value={progressTarget || ''}
+                 onChange={(e) => setProgressTarget(+e.target.value)} placeholder="100" style={fieldInput} />
         </Field>
       </div>
       <Field label="Цвет">

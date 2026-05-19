@@ -27,18 +27,17 @@ const COMMON_TAGS = ['работа', 'спорт', 'семья', 'отдых', '
 
 export function Diary({ selectedDate, onDateChange }: Props) {
   const entries = useDiaryStore((s) => s.entries)
-  const upsertToday = useDiaryStore((s) => s.upsertToday)
   const removeEntry = useDiaryStore((s) => s.removeEntry)
   const avgMood = useDiaryStore((s) => s.getAverageMood)(30)
 
-  const today = dayjs().format('YYYY-MM-DD')
-  const todayEntry = entries.find((e) => e.date === today)
-  const [mood, setMood] = useState<MoodLevel>((todayEntry?.mood as MoodLevel) ?? 4)
+  const selDay = dayjs(selectedDate)
+  const isToday = selDay.isSame(dayjs(), 'day')
+  const currentEntry = entries.find((e) => e.date === selectedDate)
   const [openWrite, setOpenWrite] = useState(false)
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null)
 
-  // graphs
-  const week = Array.from({ length: 7 }, (_, i) => dayjs().subtract(6 - i, 'day').format('YYYY-MM-DD'))
+  // graphs end on selectedDate
+  const week = Array.from({ length: 7 }, (_, i) => selDay.subtract(6 - i, 'day').format('YYYY-MM-DD'))
   const moodWeek = week.map((d) => entries.find((e) => e.date === d)?.mood ?? 0)
   const energyWeek = week.map((d) => {
     const e = entries.find((x) => x.date === d)
@@ -48,10 +47,16 @@ export function Diary({ selectedDate, onDateChange }: Props) {
   const recent = useMemo(() => [...entries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20), [entries])
 
   const handleMoodPick = (m: MoodLevel) => {
-    setMood(m)
-    upsertToday(m, todayEntry?.moodNote, todayEntry?.tags)
+    // Write mood for selectedDate (today or any past day)
+    const existing = entries.find((e) => e.date === selectedDate)
+    if (existing) {
+      useDiaryStore.getState().updateEntry(existing.id, { mood: m })
+    } else {
+      useDiaryStore.getState().addEntry({ date: selectedDate, mood: m, moodNote: '', tags: [] })
+    }
     haptic('select')
   }
+  const mood = (currentEntry?.mood as MoodLevel) ?? 4
 
   return (
     <>
@@ -63,7 +68,7 @@ export function Diary({ selectedDate, onDateChange }: Props) {
             <div className="w-sub">{dayjs(selectedDate).format('D MMMM, dddd')}</div>
           </div>
           <button className="fab" style={{ width: 'auto', padding: '10px 14px', borderRadius: 14 }}
-                  onClick={() => { setEditingEntry(todayEntry ?? null); setOpenWrite(true); haptic('medium') }}>
+                  onClick={() => { setEditingEntry(currentEntry ?? { id: '', date: selectedDate, mood, moodNote: '', createdAt: '' } as any); setOpenWrite(true); haptic('medium') }}>
             <Icon name="edit" size={14} color="#0a0a0b" stroke={2.4} />
           </button>
         </div>
@@ -71,7 +76,7 @@ export function Diary({ selectedDate, onDateChange }: Props) {
         {/* Mood capture */}
         <div className="widget" style={{ marginBottom: 8 }}>
           <div className="w-head">
-            <div className="w-title violet">◆ КАК ТЫ СЕГОДНЯ?</div>
+            <div className="w-title violet">◆ {isToday ? 'КАК ТЫ СЕГОДНЯ?' : selDay.format('D MMMM').toUpperCase()}</div>
             <span className="w-label">сред. за 30 дн: {avgMood ? avgMood.toFixed(1) : '—'}</span>
           </div>
           <div className="mood-row">
@@ -125,22 +130,22 @@ export function Diary({ selectedDate, onDateChange }: Props) {
             <div className="w-title cyan">◆ ЗАМЕТКА ДНЯ</div>
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35, marginBottom: 14 }}>
-            {todayEntry?.moodNote ? todayEntry.moodNote.slice(0, 140) : 'Что было ярким сегодня?'}
-            {todayEntry?.moodNote && todayEntry.moodNote.length > 140 ? '…' : ''}
+            {currentEntry?.moodNote ? currentEntry.moodNote.slice(0, 140) : 'Что было ярким сегодня?'}
+            {currentEntry?.moodNote && currentEntry.moodNote.length > 140 ? '…' : ''}
           </div>
           <button
             className="lrow"
             style={{ background: 'var(--panel-2)', borderRadius: 14, gap: 10, padding: 12 }}
-            onClick={() => { setEditingEntry(todayEntry ?? null); setOpenWrite(true); haptic('medium') }}
+            onClick={() => { setEditingEntry(currentEntry ?? null); setOpenWrite(true); haptic('medium') }}
           >
             <Icon name="edit" size={18} color="var(--accent)" />
             <span style={{ flex: 1, fontSize: 13, color: 'var(--text-dim)' }}>
-              {todayEntry ? 'Редактировать запись' : 'Написать запись'}
+              {currentEntry ? 'Редактировать запись' : 'Написать запись'}
             </span>
           </button>
-          {(todayEntry?.tags?.length ?? 0) > 0 && (
+          {(currentEntry?.tags?.length ?? 0) > 0 && (
             <div className="w-row" style={{ gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-              {todayEntry!.tags!.map((t) => (
+              {currentEntry!.tags!.map((t) => (
                 <span key={t} className="pill outline">#{t}</span>
               ))}
             </div>
@@ -185,14 +190,24 @@ export function Diary({ selectedDate, onDateChange }: Props) {
       </div>
 
       <Sheet open={openWrite} onClose={() => { setOpenWrite(false); setEditingEntry(null) }}
-             title={editingEntry ? dayjs(editingEntry.date).format('D MMMM') : 'Сегодня'}>
+             title={editingEntry?.id ? dayjs(editingEntry.date).format('D MMMM') : selDay.format('D MMMM')}>
         <EntryForm
-          initial={editingEntry ?? { date: today, mood, moodNote: '', tags: [] }}
+          initial={editingEntry ?? { date: selectedDate, mood, moodNote: '', tags: [] }}
           onSubmit={(data) => {
-            if (editingEntry) {
+            if (editingEntry?.id) {
               useDiaryStore.getState().updateEntry(editingEntry.id, data)
             } else {
-              upsertToday(data.mood as MoodLevel, data.moodNote ?? '', data.tags)
+              // upsert for the selected (or editing) date
+              const date = editingEntry?.date ?? selectedDate
+              const existing = useDiaryStore.getState().entries.find((e) => e.date === date)
+              if (existing) {
+                useDiaryStore.getState().updateEntry(existing.id, data)
+              } else {
+                useDiaryStore.getState().addEntry({
+                  date, mood: (data.mood as MoodLevel) ?? mood,
+                  moodNote: data.moodNote ?? '', tags: data.tags,
+                })
+              }
             }
             haptic('success')
             setOpenWrite(false)

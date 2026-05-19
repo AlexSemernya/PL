@@ -27,25 +27,28 @@ export function Habits({ selectedDate, onDateChange }: Props) {
   const [editing, setEditing] = useState<Habit | null>(null)
 
   const doneOn = (d: string) => habits.filter((h) => h.completedDates.includes(d)).length
+  const selDay = dayjs(selectedDate)
+  const isToday = selDay.isSame(dayjs(), 'day')
 
-  // 60-day heatmap: cells colored by count of habits done that day
-  const heatmap = useMemo(() => {
-    const cells: { level: 0 | 1 | 2 | 3 | 4; date: string }[] = []
-    const start = dayjs().subtract(59, 'day')
+  // Heatmap window: Week=7, Month=30, Year=365 (with thinner cells)
+  const { cells: heatmap, cols: heatmapCols } = useMemo(() => {
+    const days = tab === 'Неделя' ? 7 : tab === 'Месяц' ? 30 : 365
+    const cols = tab === 'Неделя' ? 7 : tab === 'Месяц' ? 15 : 53
+    const items: { level: 0 | 1 | 2 | 3 | 4; date: string }[] = []
+    const start = selDay.subtract(days - 1, 'day')
     const maxPerDay = Math.max(1, habits.length)
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < days; i++) {
       const date = start.add(i, 'day').format('YYYY-MM-DD')
       const c = doneOn(date)
       const ratio = c / maxPerDay
       const level: 0 | 1 | 2 | 3 | 4 = c === 0 ? 0 : ratio >= 1 ? 4 : ratio >= 0.75 ? 3 : ratio >= 0.5 ? 2 : 1
-      cells.push({ level, date })
+      items.push({ level, date })
     }
-    return cells
+    return { cells: items, cols }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habits, tab])
+  }, [habits, tab, selectedDate])
 
-  const today = dayjs().format('YYYY-MM-DD')
-  const doneToday = doneOn(today)
+  const doneOnSelected = doneOn(selectedDate)
 
   // overall streak — consecutive days back from today where ≥1 habit done
   const streak = (() => {
@@ -59,6 +62,10 @@ export function Habits({ selectedDate, onDateChange }: Props) {
     return s
   })()
 
+  // For the segment label
+  const rangeLabel = tab === 'Неделя' ? '7 дней' : tab === 'Месяц' ? '30 дней' : '365 дней'
+  const totalDoneInRange = heatmap.reduce((a, c) => a + (c.level > 0 ? 1 : 0), 0)
+
   return (
     <>
       <CalendarHeader selectedDate={selectedDate} onDateChange={onDateChange} />
@@ -67,7 +74,7 @@ export function Habits({ selectedDate, onDateChange }: Props) {
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Привычки</div>
             <div className="w-sub">
-              {habits.length} активных · {doneToday} выполнено сегодня
+              {habits.length} активных · {doneOnSelected} выполнено {isToday ? 'сегодня' : selDay.format('D MMM')}
             </div>
           </div>
           <button
@@ -106,13 +113,16 @@ export function Habits({ selectedDate, onDateChange }: Props) {
             <span className="w-big">{streak}</span>
             <span className="w-unit">{streak === 1 ? 'день' : streak > 1 && streak < 5 ? 'дня' : 'дней'} подряд</span>
           </div>
-          <div className="habit-grid">
+          <div
+            className="habit-grid"
+            style={{ gridTemplateColumns: `repeat(${heatmapCols}, 1fr)` }}
+          >
             {heatmap.map((c, i) => (
               <div key={i} className={`habit-cell ${c.level ? 'l' + c.level : ''}`} title={`${c.date}: ${doneOn(c.date)} привычек`} />
             ))}
           </div>
           <div className="w-row between" style={{ marginTop: 10, fontSize: 10, color: 'var(--text-faint)' }}>
-            <span>60 дней назад</span>
+            <span>{rangeLabel} · {totalDoneInRange} активных дней</span>
             <div className="w-row" style={{ gap: 4 }}>
               <span>меньше</span>
               {[0, 1, 2, 3, 4].map((lvl) => (
@@ -125,7 +135,7 @@ export function Habits({ selectedDate, onDateChange }: Props) {
 
         {/* Habits list */}
         <div className="sec-h">
-          <span className="t">Сегодня</span>
+          <span className="t">{isToday ? 'Сегодня' : selDay.format('D MMMM')}</span>
         </div>
 
         {habits.length === 0 ? (
@@ -138,14 +148,14 @@ export function Habits({ selectedDate, onDateChange }: Props) {
           </div>
         ) : (
           habits.map((h) => {
-            const done = h.completedDates.includes(today)
-            const last5 = Array.from({ length: 5 }, (_, i) => dayjs().subtract(4 - i, 'day').format('YYYY-MM-DD'))
+            const done = h.completedDates.includes(selectedDate)
+            const last5 = Array.from({ length: 5 }, (_, i) => selDay.subtract(4 - i, 'day').format('YYYY-MM-DD'))
             const streakH = getStreak(h.id)
             return (
               <button
                 key={h.id}
                 className={`lrow ${done ? 'done' : ''}`}
-                onClick={() => { toggleComplete(h.id, today); haptic(done ? 'light' : 'success') }}
+                onClick={() => { toggleComplete(h.id, selectedDate); haptic(done ? 'light' : 'success') }}
                 onContextMenu={(e) => { e.preventDefault(); setEditing(h); setOpenAdd(true) }}
               >
                 <div className={`check ${done ? 'done' : ''}`}>

@@ -18,26 +18,29 @@ interface Props {
 export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
   const habits = useHabitsStore((s) => s.habits)
   const toggleHabit = useHabitsStore((s) => s.toggleComplete)
-  const completedToday = useHabitsStore((s) => s.getCompletedCount)
+  const getCompletedCount = useHabitsStore((s) => s.getCompletedCount)
   const goalsStats = useGoalsStore((s) => s.getStats)()
   const goals = useGoalsStore((s) => s.goals)
   const balance = useFinanceStore((s) => s.getBalance)()
-  const monthlyIncome = useFinanceStore((s) => s.getMonthlyTotal)(dayjs().format('YYYY-MM'), 'income')
-  const monthlyExpense = useFinanceStore((s) => s.getMonthlyTotal)(dayjs().format('YYYY-MM'), 'expense')
   const diary = useDiaryStore((s) => s.entries)
+
+  const selDay = dayjs(selectedDate)
+  const selMonth = selDay.format('YYYY-MM')
+  const isToday = selDay.isSame(dayjs(), 'day')
+  const monthlyIncome = useFinanceStore((s) => s.getMonthlyTotal)(selMonth, 'income')
+  const monthlyExpense = useFinanceStore((s) => s.getMonthlyTotal)(selMonth, 'expense')
   const avgMood = useDiaryStore((s) => s.getAverageMood)(7)
 
-  const today = dayjs().format('YYYY-MM-DD')
-  const dayName = dayjs(selectedDate).format('dddd')
-  const dayNumLabel = dayjs(selectedDate).format('D MMM')
+  const dayName = selDay.format('dddd')
+  const dayNumLabel = selDay.format('D MMM')
   const total = habits.length
-  const done = completedToday(today)
+  const done = getCompletedCount(selectedDate)
   const ringValue = total > 0 ? done / total : 0
   const userName = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name ?? 'друг'
 
-  // sparkline of last 8 days of finance balance change
+  // Sparkline of running balance over last 8 days ending on selectedDate
   const sparkValues = (() => {
-    const days = Array.from({ length: 8 }, (_, i) => dayjs().subtract(7 - i, 'day').format('YYYY-MM-DD'))
+    const days = Array.from({ length: 8 }, (_, i) => selDay.subtract(7 - i, 'day').format('YYYY-MM-DD'))
     let running = 0
     return days.map((d) => {
       const day = useFinanceStore.getState().entries.filter((e) => e.date === d)
@@ -46,21 +49,20 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
     })
   })()
 
-  // habits — 7-day bar chart (count of done habits per weekday this week)
-  const week = Array.from({ length: 7 }, (_, i) => dayjs().startOf('isoWeek').add(i, 'day').format('YYYY-MM-DD'))
+  // Habits 7-day bar chart for the iso-week containing selectedDate
+  const week = Array.from({ length: 7 }, (_, i) => selDay.startOf('isoWeek').add(i, 'day').format('YYYY-MM-DD'))
   const weekCounts = week.map((d) => habits.filter((h) => h.completedDates.includes(d)).length)
-  const todayIdx = (dayjs().isoWeekday() - 1) % 7
+  const selectedIdx = (selDay.isoWeekday() - 1) % 7
 
   const featured = goals.find((g) => !g.completed)
   const featuredPct = featured?.progressTarget
     ? Math.min(1, (featured.progressCurrent ?? 0) / featured.progressTarget)
     : 0
-  const diaryDone = diary.some((e) => e.date === today)
+  const diaryDone = diary.some((e) => e.date === selectedDate)
 
-  // diary mood last 7 days
   const moodWeek = week.map((d) => diary.find((e) => e.date === d)?.mood ?? 0)
 
-  // streak (consecutive days where at least 1 habit done)
+  // streak (consecutive days back from today with ≥1 habit completed)
   const streak = (() => {
     let s = 0
     let day = dayjs()
@@ -95,7 +97,7 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
         {/* Today hero */}
         <div className="widget" style={{ marginBottom: 8 }}>
           <div className="w-head">
-            <div className="w-title accent">◆ Сегодня</div>
+            <div className="w-title accent">◆ {isToday ? 'Сегодня' : dayNumLabel}</div>
             <span className="w-label">{dayNumLabel}</span>
           </div>
           <div className="w-row" style={{ gap: 18, alignItems: 'center' }}>
@@ -142,7 +144,7 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
               <span className="w-big">{done}</span>
               <span className="w-unit">{total > 0 ? `/${total}` : ''}</span>
             </div>
-            <BarChart values={weekCounts.length ? weekCounts : [0, 0, 0, 0, 0, 0, 0]} hot={todayIdx} />
+            <BarChart values={weekCounts.length ? weekCounts : [0, 0, 0, 0, 0, 0, 0]} hot={selectedIdx} />
           </button>
 
           <button className="widget tight" style={{ cursor: 'pointer', border: 0, textAlign: 'left' }} onClick={() => onJumpTab?.('goals')}>
@@ -167,7 +169,7 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
           <button className="widget tight" style={{ cursor: 'pointer', border: 0, textAlign: 'left' }} onClick={() => onJumpTab?.('finance')}>
             <div className="w-head">
               <div className="w-title orange"><Icon name="wallet" size={11} color="var(--warn)" /> ФИНАНСЫ</div>
-              <span className="w-label">{dayjs().format('MMM')}</span>
+              <span className="w-label">{selDay.format('MMM')}</span>
             </div>
             <div className="w-row baseline" style={{ gap: 4, marginBottom: 6 }}>
               <span className="w-mid">{formatK(balance)}</span>
@@ -191,7 +193,7 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
             <TickRow values={moodWeek.map((m) => m || 0.4)} color="var(--violet)" height={28} />
             <div className="bar-labels" style={{ marginTop: 4 }}>
               {RU_WD_SHORT.map((d, i) => (
-                <span key={i} className={i === todayIdx ? 'hot' : ''}>{d}</span>
+                <span key={i} className={i === selectedIdx ? 'hot' : ''}>{d}</span>
               ))}
             </div>
           </button>
@@ -199,7 +201,7 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
 
         {/* Today's habits */}
         <div className="sec-h">
-          <span className="t">Привычки на сегодня</span>
+          <span className="t">Привычки {isToday ? 'на сегодня' : `на ${dayNumLabel}`}</span>
           <button className="a" onClick={() => onJumpTab?.('habits')}>все →</button>
         </div>
         {habits.length === 0 ? (
@@ -208,13 +210,13 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
           </div>
         ) : (
           habits.slice(0, 6).map((h) => {
-            const isDone = h.completedDates.includes(today)
+            const isDone = h.completedDates.includes(selectedDate)
             return (
               <button
                 key={h.id}
                 className={`lrow ${isDone ? 'done' : ''}`}
                 onClick={() => {
-                  toggleHabit(h.id, today)
+                  toggleHabit(h.id, selectedDate)
                   haptic(isDone ? 'light' : 'success')
                 }}
               >
