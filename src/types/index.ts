@@ -1,0 +1,115 @@
+// ─── Привычки ───────────────────────────────────────────
+export interface Habit {
+  id: string
+  title: string
+  frequency: 'daily' | 'weekly' | 'custom'
+  daysOfWeek?: number[] // 0=Пн ... 6=Вс
+  completedDates: string[] // 'YYYY-MM-DD'
+  color?: string
+  emoji?: string
+  icon?: string
+  createdAt: string
+  goal?: number
+  linkedGoalId?: string
+  reminder?: string // 'HH:mm'
+}
+
+// ─── Цели ───────────────────────────────────────────────
+export interface Goal {
+  id: string
+  title: string
+  startDate: string
+  endDate?: string
+  frequency: 'daily' | 'weekly' | 'monthly' | 'none'
+  steps: GoalStep[]
+  reminder?: string
+  completed: boolean
+  createdAt: string
+  color?: string
+  tags?: string[]
+  progressCurrent?: number
+  progressTarget?: number
+  progressUnit?: string
+}
+
+export interface GoalStep {
+  id: string
+  title: string
+  done: boolean
+}
+
+// ─── Финансы ────────────────────────────────────────────
+export type FinanceCategory =
+  | 'salary' | 'project' | 'investment' | 'other_income'
+  | 'food' | 'transport' | 'housing' | 'shopping' | 'entertainment'
+  | 'cafe' | 'subscriptions' | 'gifts' | 'other_expense'
+
+export type FinanceType = 'income' | 'expense'
+
+export interface FinanceEntry {
+  id: string
+  type: FinanceType
+  amount: number
+  category: FinanceCategory
+  note?: string
+  date: string // 'YYYY-MM-DD'
+  linkedGoalId?: string
+  createdAt: string
+}
+
+export interface FinanceGoal {
+  id: string
+  title: string
+  targetAmount: number
+  currentAmount: number
+  deadline?: string
+  createdAt: string
+}
+
+// ─── Дневник ────────────────────────────────────────────
+export type MoodLevel = 1 | 2 | 3 | 4 | 5
+
+export interface DiaryEntry {
+  id: string
+  date: string // 'YYYY-MM-DD'
+  mood: MoodLevel
+  moodNote: string
+  text?: string
+  tags?: string[]
+  createdAt: string
+}
+
+// ─── Общее ──────────────────────────────────────────────
+export type TabId = 'home' | 'habits' | 'goals' | 'finance' | 'diary'
+
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        ready: () => void
+        expand: () => void
+        requestFullscreen?: () => void
+        setHeaderColor: (color: string) => void
+        setBackgroundColor: (color: string) => void
+        setBottomBarColor?: (color: string) => void
+        disableVerticalSwipes?: () => void
+        viewportHeight?: number
+        viewportStableHeight?: number
+        colorScheme?: 'light' | 'dark'
+        onEvent?: (event: string, cb: () => void) => void
+        HapticFeedback?: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
+          notificationOccurred: (type: 'error' | 'success' | 'warning') => void
+          selectionChanged: () => void
+        }
+        CloudStorage?: {
+          getItem: (key: string, cb: (err: unknown, value: string) => void) => void
+          setItem: (key: string, value: string, cb?: (err: unknown) => void) => void
+          removeItem: (key: string, cb?: (err: unknown) => void) => void
+          getKeys?: (cb: (err: unknown, keys: string[]) => void) => void
+        }
+        initDataUnsafe?: { user?: { id: number; first_name: string; last_name?: string; username?: string } }
+      }
+    }
+  }
+}
