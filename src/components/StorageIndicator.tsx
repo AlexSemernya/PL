@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
-import { runStorageSelfTest, type SelfTestResult } from '../lib/storageSelfTest'
+import {
+  runStorageSelfTest,
+  runCrossSessionTest,
+  type SelfTestResult,
+  type CrossSessionResult,
+} from '../lib/storageSelfTest'
 
-// Bumped on every diagnostic build so you can confirm the new JS actually loaded.
-export const BUILD_TAG = 'v1.0.4-debug'
+export const BUILD_TAG = 'v1.0.5-debug'
 
 interface Stats {
   reads: number
@@ -11,16 +15,8 @@ interface Stats {
   idb: boolean
   ls: boolean
   lastWriteAt?: number
-  lastError?: string
 }
 
-/**
- * Permanent on-screen storage diagnostic panel. Visible by default — once we
- * confirm persistence works on the user's device we can hide it behind a flag.
- */
-// Stub kept for backwards compatibility — the indicator is now always visible,
-// so the 5-tap secret is a no-op. We keep the export so CalendarHeader's import
-// doesn't break.
 export function useSecretTapHandler(): () => void {
   return () => { /* noop */ }
 }
@@ -28,15 +24,15 @@ export function useSecretTapHandler(): () => void {
 export function StorageIndicator() {
   const [stats, setStats] = useState<Stats>({ reads: 0, writes: 0, cloud: false, idb: false, ls: false })
   const [test, setTest] = useState<SelfTestResult | null>(null)
+  const [xs, setXs] = useState<CrossSessionResult | null>(null)
   const [flash, setFlash] = useState(false)
   const [lastWrite, setLastWrite] = useState(0)
 
-  // Run a write/read test once at boot.
   useEffect(() => {
     runStorageSelfTest().then(setTest)
+    runCrossSessionTest().then(setXs)
   }, [])
 
-  // Poll the global stats every 250ms for the live writes/reads counter.
   useEffect(() => {
     const id = setInterval(() => {
       const s = (globalThis as any).__lifeosStorageStats__ as Stats | undefined
@@ -54,6 +50,12 @@ export function StorageIndicator() {
   const dotColor = (s: 'pass' | 'fail' | 'skip' | undefined) =>
     s === 'pass' ? 'var(--good)' : s === 'fail' ? 'var(--red)' : 'var(--text-faint)'
 
+  // Shows hh:mm:ss of when this layer was last written in a PREVIOUS session.
+  const fmtPrev = (iso: string | null) => {
+    if (!iso) return '∅'
+    try { return iso.slice(11, 19) /* HH:mm:ss UTC */ } catch { return '?' }
+  }
+
   return (
     <div
       style={{
@@ -63,7 +65,7 @@ export function StorageIndicator() {
         zIndex: 9999,
         padding: '6px 9px',
         borderRadius: 10,
-        background: flash ? 'var(--accent)' : 'rgba(20,21,24,0.92)',
+        background: flash ? 'var(--accent)' : 'rgba(20,21,24,0.95)',
         color: flash ? '#0a0a0b' : 'var(--text-dim)',
         fontSize: 9,
         fontFamily: 'SF Mono, ui-monospace, monospace',
@@ -73,15 +75,26 @@ export function StorageIndicator() {
         transition: 'background 0.2s, color 0.2s',
         textTransform: 'lowercase',
         letterSpacing: '0.02em',
-        minWidth: 92,
+        minWidth: 140,
       }}
     >
       <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{BUILD_TAG}</div>
-      <div>writes {stats.writes} · reads {stats.reads}</div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-        <span><span style={{ color: dotColor(test?.cloud) }}>●</span> cloud</span>
-        <span><span style={{ color: dotColor(test?.idb) }}>●</span> idb</span>
-        <span><span style={{ color: dotColor(test?.ls) }}>●</span> ls</span>
+      <div>w {stats.writes} · r {stats.reads}</div>
+
+      <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--line)' }}>
+        <div style={{ fontWeight: 600, color: 'var(--text)' }}>self-test (now):</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <span><span style={{ color: dotColor(test?.cloud) }}>●</span> cloud</span>
+          <span><span style={{ color: dotColor(test?.idb) }}>●</span> idb</span>
+          <span><span style={{ color: dotColor(test?.ls) }}>●</span> ls</span>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--line)' }}>
+        <div style={{ fontWeight: 600, color: 'var(--text)' }}>persists across:</div>
+        <div>cloud: <span style={{ color: xs?.cloud ? 'var(--good)' : 'var(--red)' }}>{fmtPrev(xs?.cloud ?? null)}</span></div>
+        <div>idb:   <span style={{ color: xs?.idb ? 'var(--good)' : 'var(--red)' }}>{fmtPrev(xs?.idb ?? null)}</span></div>
+        <div>ls:    <span style={{ color: xs?.ls ? 'var(--good)' : 'var(--red)' }}>{fmtPrev(xs?.ls ?? null)}</span></div>
       </div>
     </div>
   )
