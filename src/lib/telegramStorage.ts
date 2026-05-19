@@ -1,38 +1,43 @@
 /**
- * Telegram CloudStorage adapter for Zustand `persist` middleware.
+ * Tiered persistent storage for LifeOS, exposed as zustand's `StateStorage`.
  *
- * - Persists state to Telegram CloudStorage (syncs across user's devices).
- * - Also writes a parallel copy to localStorage as a fast local cache.
- *   This protects against the case where the user closes the Mini App
- *   before our async CloudStorage write completes — on next open we'll
- *   still see the latest data from localStorage while CloudStorage catches up.
- * - On read, we prefer CloudStorage (cross-device truth) and fall back to
- *   localStorage if cloud is empty or unavailable.
- * - Outside Telegram (web preview), only localStorage is used.
+ * Tiers (in order of preference for write/read):
+ *   1. Telegram CloudStorage — syncs across user's devices. Optional.
+ *   2. IndexedDB              — durable on most WebKit/Chromium webviews.
+ *   3. localStorage           — sync fallback for old browsers.
  *
- * Telegram limits: key ≤ 128 chars, value ≤ 4096 chars, up to 1024 keys.
- * Larger payloads are transparently sharded as `{name}__0`, `{name}__1`, …
+ * Writes go to ALL available tiers (so even if Telegram closes before async
+ * writes finish, IDB/localStorage already have the data).
+ * Reads try cloud → IDB → localStorage and return the first hit.
+ *
+ * We expose a counter on `window.__lifeosStorageStats__` so the UI can show
+ * a tiny "saved" indicator and so we can diagnose persistence issues live.
  */
-import type { PersistStorage, StorageValue } from 'zustand/middleware'
+import { createJSONStorage, type StateStorage } from 'zustand/middleware'
 
 const CHUNK = 4000
+const IDB_NAME = 'lifeos'
+const IDB_STORE = 'kv'
 
-const isTelegram = (): boolean =>
+interface StorageStats {
+  reads: number
+  writes: number
+  cloud: boolean
+  idb: boolean
+  ls: boolean
+  lastWriteKey?: string
+  lastWriteAt?: number
+  lastError?: string
+}
+
+const stats: StorageStats = { reads: 0, writes: 0, cloud: false, idb: false, ls: false }
+;(globalThis as any).__lifeosStorageStats__ = stats
+
+// ───────── Telegram CloudStorage ─────────
+const cloudOk = (): boolean =>
   typeof window !== 'undefined' && !!window.Telegram?.WebApp?.CloudStorage
 const cloud = () => window.Telegram!.WebApp!.CloudStorage!
 
-// ───────── low-level localStorage (safe wrappers) ─────────
-const lsGet = (k: string): string | null => {
-  try { return localStorage.getItem(k) } catch { return null }
-}
-const lsSet = (k: string, v: string): void => {
-  try { localStorage.setItem(k, v) } catch { /* quota / privacy mode */ }
-}
-const lsRemove = (k: string): void => {
-  try { localStorage.removeItem(k) } catch { /* noop */ }
-}
-
-// ───────── low-level CloudStorage (per-key, promise-wrapped) ─────────
 const cloudGet = (k: string): Promise<string | null> =>
   new Promise((resolve) => {
     try {
@@ -53,9 +58,7 @@ const cloudRemove = (k: string): Promise<void> =>
     try { cloud().removeItem(k, () => resolve()) } catch { resolve() }
   })
 
-// ───────── chunked read/write ─────────
-async function readChunked(name: string): Promise<string | null> {
-  // Try chunked first.
+async function cloudReadChunked(name: string): Promise<string | null> {
   const head = await cloudGet(`${name}__0`)
   if (head !== null) {
     const parts: string[] = [head]
@@ -66,58 +69,158 @@ async function readChunked(name: string): Promise<string | null> {
     }
     return parts.join('')
   }
-  // Legacy single-key fallback.
   return await cloudGet(name)
 }
 
-async function writeChunked(name: string, value: string): Promise<void> {
+async function cloudWriteChunked(name: string, value: string): Promise<void> {
   const chunks: string[] = []
   for (let i = 0; i < value.length; i += CHUNK) chunks.push(value.slice(i, i + CHUNK))
-  // Write all in parallel.
   await Promise.all(chunks.map((c, i) => cloudSet(`${name}__${i}`, c)))
-  // Clean up any leftover chunks from a previously larger payload.
-  for (let i = chunks.length; i < chunks.length + 4; i++) {
-    await cloudRemove(`${name}__${i}`)
+  for (let i = chunks.length; i < chunks.length + 4; i++) await cloudRemove(`${name}__${i}`)
+  await cloudRemove(name)
+}
+
+// ───────── IndexedDB ─────────
+let idbOpenPromise: Promise<IDBDatabase | null> | null = null
+function openIdb(): Promise<IDBDatabase | null> {
+  if (idbOpenPromise) return idbOpenPromise
+  if (typeof indexedDB === 'undefined') {
+    idbOpenPromise = Promise.resolve(null)
+    return idbOpenPromise
   }
-  // Also delete any legacy single-key copy.
-  await cloudRemove(name)
-}
-
-async function removeChunked(name: string): Promise<void> {
-  for (let i = 0; i < 256; i++) await cloudRemove(`${name}__${i}`)
-  await cloudRemove(name)
-}
-
-// ───────── PersistStorage<T> ─────────
-export function createTelegramStorage<T>(): PersistStorage<T> {
-  return {
-    getItem: async (name) => {
-      // Prefer cloud (cross-device truth), fall back to local cache.
-      let raw: string | null = null
-      if (isTelegram()) {
-        raw = await readChunked(name)
+  idbOpenPromise = new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(IDB_NAME, 1)
+      req.onupgradeneeded = () => {
+        const db = req.result
+        if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE)
       }
-      if (raw === null) raw = lsGet(name)
-      if (raw === null) return null
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => resolve(null)
+      req.onblocked = () => resolve(null)
+    } catch {
+      resolve(null)
+    }
+  })
+  return idbOpenPromise
+}
+
+async function idbGet(key: string): Promise<string | null> {
+  const db = await openIdb()
+  if (!db) return null
+  return new Promise<string | null>((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readonly')
+      const store = tx.objectStore(IDB_STORE)
+      const req = store.get(key)
+      req.onsuccess = () => {
+        const v = req.result
+        if (typeof v === 'string') resolve(v)
+        else resolve(null)
+      }
+      req.onerror = () => resolve(null)
+    } catch {
+      resolve(null)
+    }
+  })
+}
+
+async function idbSet(key: string, value: string): Promise<void> {
+  const db = await openIdb()
+  if (!db) return
+  return new Promise<void>((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      const store = tx.objectStore(IDB_STORE)
+      store.put(value, key)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => resolve()
+      tx.onabort = () => resolve()
+    } catch {
+      resolve()
+    }
+  })
+}
+
+async function idbRemove(key: string): Promise<void> {
+  const db = await openIdb()
+  if (!db) return
+  return new Promise<void>((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      tx.objectStore(IDB_STORE).delete(key)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => resolve()
+      tx.onabort = () => resolve()
+    } catch {
+      resolve()
+    }
+  })
+}
+
+// ───────── localStorage ─────────
+const lsGet = (k: string): string | null => {
+  try { return localStorage.getItem(k) } catch { return null }
+}
+const lsSet = (k: string, v: string): boolean => {
+  try { localStorage.setItem(k, v); return true } catch { return false }
+}
+const lsRemove = (k: string): void => {
+  try { localStorage.removeItem(k) } catch { /* noop */ }
+}
+
+// ───────── StateStorage facade ─────────
+const stateStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    stats.reads++
+    // 1) CloudStorage (cross-device)
+    if (cloudOk()) {
+      const v = await cloudReadChunked(name)
+      if (v !== null) { stats.cloud = true; return v }
+    }
+    // 2) IDB
+    const fromIdb = await idbGet(name)
+    if (fromIdb !== null) { stats.idb = true; return fromIdb }
+    // 3) localStorage
+    const fromLs = lsGet(name)
+    if (fromLs !== null) { stats.ls = true; return fromLs }
+    return null
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    stats.writes++
+    stats.lastWriteKey = name
+    stats.lastWriteAt = Date.now()
+    // Synchronous local write first — survives a sudden app close.
+    if (lsSet(name, value)) stats.ls = true
+    // IDB write (async but durable).
+    try {
+      await idbSet(name, value)
+      stats.idb = true
+    } catch (e) {
+      stats.lastError = String(e)
+    }
+    // CloudStorage write (cross-device).
+    if (cloudOk()) {
       try {
-        return JSON.parse(raw) as StorageValue<T>
-      } catch {
-        return null
+        await cloudWriteChunked(name, value)
+        stats.cloud = true
+      } catch (e) {
+        stats.lastError = String(e)
       }
-    },
-    setItem: async (name, value) => {
-      const raw = JSON.stringify(value)
-      // 1) Synchronous local cache — survives even if user closes the app
-      //    before the async cloud write completes.
-      lsSet(name, raw)
-      // 2) Cloud write (async, syncs across devices).
-      if (isTelegram()) {
-        await writeChunked(name, raw)
-      }
-    },
-    removeItem: async (name) => {
-      lsRemove(name)
-      if (isTelegram()) await removeChunked(name)
-    },
-  }
+    }
+  },
+  removeItem: async (name: string): Promise<void> => {
+    lsRemove(name)
+    await idbRemove(name)
+    if (cloudOk()) {
+      for (let i = 0; i < 256; i++) await cloudRemove(`${name}__${i}`)
+      await cloudRemove(name)
+    }
+  },
 }
+
+/**
+ * Use this in `persist({ storage: createTelegramStorage() })`.
+ * Returns a JSON storage adapter compatible with zustand v4.
+ */
+export const createTelegramStorage = <T>() => createJSONStorage<T>(() => stateStorage)

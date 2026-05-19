@@ -82,7 +82,7 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Привет, {userName}</div>
             <div className="w-sub">
               {dayName}
-              {total > 0 ? ` · осталось ${total - done} из ${total}` : ' · добро пожаловать'}
+              {total > 0 ? ` · осталось ${total - done} из ${total}` : ' · Добро пожаловать'}
             </div>
           </div>
           {streak > 0 && (

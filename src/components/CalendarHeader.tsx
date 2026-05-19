@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { Icon } from './Icons'
 import { LifeOSMark } from './Widgets'
 import { haptic } from '../lib/haptic'
+import { useSecretTapHandler } from './StorageIndicator'
 
 const RU_MONTHS = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -53,11 +54,14 @@ export function CalendarHeader({ selectedDate, onDateChange, userInitial }: Prop
   }
 
   const initial = userInitial ?? window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name?.[0] ?? 'А'
+  const onSecretTap = useSecretTapHandler()
 
   return (
     <>
       <div className="app-brand">
-        <LifeOSMark size={22} />
+        <span onClick={onSecretTap} style={{ display: 'inline-flex' }}>
+          <LifeOSMark size={22} />
+        </span>
         <span className="app-brand-name">
           Life<span style={{ color: 'var(--accent)' }}>OS</span>
         </span>

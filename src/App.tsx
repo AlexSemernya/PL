@@ -6,6 +6,7 @@ import customParseFormat from 'dayjs/plugin/customParseFormat'
 
 import { Icon } from './components/Icons'
 import { TabBar } from './components/TabBar'
+import { StorageIndicator } from './components/StorageIndicator'
 import { Home } from './pages/Home'
 import { Habits } from './pages/Habits'
 import { Goals } from './pages/Goals'
@@ -70,6 +71,7 @@ export default function App() {
       {tab === 'finance' && <Finance {...pageProps} />}
       {tab === 'diary' && <Diary {...pageProps} />}
       <TabBar active={tab} onChange={setTab} />
+      <StorageIndicator />
     </div>
   )
 }
