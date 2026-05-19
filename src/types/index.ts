@@ -80,7 +80,7 @@ export interface DiaryEntry {
 }
 
 // ─── Общее ──────────────────────────────────────────────
-export type TabId = 'home' | 'habits' | 'goals' | 'finance' | 'diary'
+export type TabId = 'home' | 'habits' | 'goals' | 'finance' | 'diary' | 'friends'
 
 declare global {
   interface ImportMetaEnv {

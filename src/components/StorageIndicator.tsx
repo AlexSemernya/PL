@@ -6,7 +6,7 @@ import {
   type CrossSessionResult,
 } from '../lib/storageSelfTest'
 
-export const BUILD_TAG = 'v1.2.0'
+export const BUILD_TAG = 'v1.3.0'
 
 type LayerStatus = 'ok' | 'fail' | 'na' | 'pending'
 

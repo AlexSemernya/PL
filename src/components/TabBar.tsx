@@ -9,6 +9,7 @@ const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'goals', label: 'Цели', icon: 'target' },
   { id: 'finance', label: 'Финансы', icon: 'wallet' },
   { id: 'diary', label: 'Дневник', icon: 'book2' },
+  { id: 'friends', label: 'Друзья', icon: 'users' },
 ]
 
 export function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {

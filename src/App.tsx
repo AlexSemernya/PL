@@ -15,6 +15,7 @@ import { Habits } from './pages/Habits'
 import { Goals } from './pages/Goals'
 import { Finance } from './pages/Finance'
 import { Diary } from './pages/Diary'
+import { Friends } from './pages/Friends'
 import { useUser } from './lib/useUser'
 import type { TabId } from './types'
 
@@ -88,6 +89,7 @@ export default function App() {
       {tab === 'goals' && <Goals {...pageProps} />}
       {tab === 'finance' && <Finance {...pageProps} />}
       {tab === 'diary' && <Diary {...pageProps} />}
+      {tab === 'friends' && <Friends {...pageProps} />}
       <TabBar active={tab} onChange={setTab} />
       <StorageIndicator />
 
