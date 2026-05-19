@@ -6,7 +6,9 @@ import {
   type CrossSessionResult,
 } from '../lib/storageSelfTest'
 
-export const BUILD_TAG = 'v1.0.6-debug'
+export const BUILD_TAG = 'v1.0.7-debug'
+
+type LayerStatus = 'ok' | 'fail' | 'na' | 'pending'
 
 interface Stats {
   reads: number
@@ -14,17 +16,23 @@ interface Stats {
   cloud: boolean
   idb: boolean
   ls: boolean
+  cloudWrite: LayerStatus
+  idbWrite: LayerStatus
+  lsWrite: LayerStatus
   lastWriteKey?: string
   lastWriteAt?: number
+  lastReadFrom?: 'cloud' | 'idb' | 'ls' | 'none'
   lastError?: string
+  lastValueSize?: number
 }
 
-export function useSecretTapHandler(): () => void {
-  return () => { /* noop */ }
-}
+export function useSecretTapHandler(): () => void { return () => { /* noop */ } }
 
 export function StorageIndicator() {
-  const [stats, setStats] = useState<Stats>({ reads: 0, writes: 0, cloud: false, idb: false, ls: false })
+  const [stats, setStats] = useState<Stats>({
+    reads: 0, writes: 0, cloud: false, idb: false, ls: false,
+    cloudWrite: 'pending', idbWrite: 'pending', lsWrite: 'pending',
+  })
   const [test, setTest] = useState<SelfTestResult | null>(null)
   const [xs, setXs] = useState<CrossSessionResult | null>(null)
   const [flash, setFlash] = useState(false)
@@ -45,17 +53,19 @@ export function StorageIndicator() {
         setFlash(true)
         setTimeout(() => setFlash(false), 600)
       }
-    }, 250)
+    }, 200)
     return () => clearInterval(id)
   }, [lastWrite])
 
-  const dotColor = (s: 'pass' | 'fail' | 'skip' | undefined) =>
+  const tcolor = (s: 'pass' | 'fail' | 'skip' | undefined) =>
     s === 'pass' ? 'var(--good)' : s === 'fail' ? 'var(--red)' : 'var(--text-faint)'
 
-  // Shows hh:mm:ss of when this layer was last written in a PREVIOUS session.
+  const lcolor = (s: LayerStatus): string =>
+    s === 'ok' ? 'var(--good)' : s === 'fail' ? 'var(--red)' : s === 'pending' ? 'var(--warn)' : 'var(--text-faint)'
+
   const fmtPrev = (iso: string | null) => {
     if (!iso) return '∅'
-    try { return iso.slice(11, 19) /* HH:mm:ss UTC */ } catch { return '?' }
+    try { return iso.slice(11, 19) } catch { return '?' }
   }
 
   return (
@@ -77,28 +87,45 @@ export function StorageIndicator() {
         transition: 'background 0.2s, color 0.2s',
         textTransform: 'lowercase',
         letterSpacing: '0.02em',
-        minWidth: 140,
+        minWidth: 170,
+        maxWidth: 240,
       }}
     >
       <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{BUILD_TAG}</div>
       <div>w {stats.writes} · r {stats.reads}</div>
-      {stats.lastWriteKey && (
-        <div style={{ color: 'var(--good)', wordBreak: 'break-all' }}>
-          last: {stats.lastWriteKey.replace('lifeos.', '')}
+
+      {/* last write per layer */}
+      {stats.writes > 0 && (
+        <div style={{ marginTop: 3 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <span><span style={{ color: lcolor(stats.cloudWrite) }}>●</span> cloud</span>
+            <span><span style={{ color: lcolor(stats.idbWrite) }}>●</span> idb</span>
+            <span><span style={{ color: lcolor(stats.lsWrite) }}>●</span> ls</span>
+          </div>
+          {stats.lastWriteKey && (
+            <div style={{ color: 'var(--text)' }}>
+              last: {stats.lastWriteKey.replace('lifeos.', '')}
+              {stats.lastValueSize !== undefined ? ` (${stats.lastValueSize}b)` : ''}
+            </div>
+          )}
+          {stats.lastReadFrom && (
+            <div>read←{stats.lastReadFrom}</div>
+          )}
         </div>
       )}
+
       {stats.lastError && (
         <div style={{ color: 'var(--red)', wordBreak: 'break-all', marginTop: 2 }}>
-          err: {stats.lastError.slice(0, 60)}
+          err: {stats.lastError.slice(0, 80)}
         </div>
       )}
 
       <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--line)' }}>
         <div style={{ fontWeight: 600, color: 'var(--text)' }}>self-test (now):</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <span><span style={{ color: dotColor(test?.cloud) }}>●</span> cloud</span>
-          <span><span style={{ color: dotColor(test?.idb) }}>●</span> idb</span>
-          <span><span style={{ color: dotColor(test?.ls) }}>●</span> ls</span>
+          <span><span style={{ color: tcolor(test?.cloud) }}>●</span> cloud</span>
+          <span><span style={{ color: tcolor(test?.idb) }}>●</span> idb</span>
+          <span><span style={{ color: tcolor(test?.ls) }}>●</span> ls</span>
         </div>
       </div>
 
