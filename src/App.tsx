@@ -7,12 +7,15 @@ import customParseFormat from 'dayjs/plugin/customParseFormat'
 import { Icon } from './components/Icons'
 import { TabBar } from './components/TabBar'
 import { StorageIndicator } from './components/StorageIndicator'
+import { Paywall } from './components/Paywall'
+import { PremiumSheet } from './components/PremiumSheet'
+import { RemindersSheet } from './components/RemindersSheet'
 import { Home } from './pages/Home'
 import { Habits } from './pages/Habits'
 import { Goals } from './pages/Goals'
 import { Finance } from './pages/Finance'
 import { Diary } from './pages/Diary'
-// Migrations module is intentionally not imported — see migrations.ts comments.
+import { useUser } from './lib/useUser'
 import type { TabId } from './types'
 
 dayjs.extend(isoWeek)
@@ -22,6 +25,20 @@ dayjs.locale('ru')
 export default function App() {
   const [tab, setTab] = useState<TabId>('home')
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'))
+  const [showPremium, setShowPremium] = useState(false)
+  const [showReminders, setShowReminders] = useState(false)
+
+  // Listen for in-app events triggered from CalendarHeader bell/avatar.
+  useEffect(() => {
+    const onOpenPremium = () => setShowPremium(true)
+    const onOpenReminders = () => setShowReminders(true)
+    window.addEventListener('lifeos-open-premium', onOpenPremium)
+    window.addEventListener('lifeos-open-reminders', onOpenReminders)
+    return () => {
+      window.removeEventListener('lifeos-open-premium', onOpenPremium)
+      window.removeEventListener('lifeos-open-reminders', onOpenReminders)
+    }
+  }, [])
 
   // ─── Telegram WebApp init + viewport sync ───
   useEffect(() => {
@@ -45,12 +62,11 @@ export default function App() {
       window.addEventListener('resize', syncVH)
       return () => window.removeEventListener('resize', syncVH)
     } catch (e) {
-      // graceful no-op outside Telegram
       console.warn('Telegram WebApp init failed', e)
     }
   }, [])
 
-  // ─── Debug: log storage availability on boot (visible in Telegram dev tools) ───
+  // ─── Boot diagnostics ───
   useEffect(() => {
     const tg = window.Telegram?.WebApp
     console.log('[LifeOS] boot', {
@@ -61,7 +77,9 @@ export default function App() {
     })
   }, [])
 
+  const { data: userData } = useUser()
   const pageProps = { selectedDate, onDateChange: setSelectedDate }
+  const showPaywall = !!userData && !userData.user.has_access
 
   return (
     <div className="planner-app">
@@ -72,6 +90,11 @@ export default function App() {
       {tab === 'diary' && <Diary {...pageProps} />}
       <TabBar active={tab} onChange={setTab} />
       <StorageIndicator />
+
+      {/* Modal sheets — premium / reminders / paywall */}
+      <PremiumSheet open={showPremium} onClose={() => setShowPremium(false)} />
+      <RemindersSheet open={showReminders} onClose={() => setShowReminders(false)} />
+      {showPaywall && <Paywall />}
     </div>
   )
 }

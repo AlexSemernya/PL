@@ -83,6 +83,13 @@ export interface DiaryEntry {
 export type TabId = 'home' | 'habits' | 'goals' | 'finance' | 'diary'
 
 declare global {
+  interface ImportMetaEnv {
+    readonly VITE_BOT_API_URL?: string
+  }
+  interface ImportMeta {
+    readonly env: ImportMetaEnv
+  }
+
   interface Window {
     Telegram?: {
       WebApp?: {
@@ -97,6 +104,7 @@ declare global {
         viewportStableHeight?: number
         colorScheme?: 'light' | 'dark'
         onEvent?: (event: string, cb: () => void) => void
+        initData?: string
         HapticFeedback?: {
           impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
           notificationOccurred: (type: 'error' | 'success' | 'warning') => void

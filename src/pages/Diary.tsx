@@ -4,6 +4,7 @@ import { CalendarHeader } from '../components/CalendarHeader'
 import { Icon } from '../components/Icons'
 import { TickRow, Sparkline } from '../components/Widgets'
 import { Sheet } from '../components/Sheet'
+import { AnalyzeMoodSheet } from '../components/AnalyzeMoodSheet'
 import { useDiaryStore } from '../store/diaryStore'
 import { haptic } from '../lib/haptic'
 import type { DiaryEntry, MoodLevel } from '../types'
@@ -34,6 +35,7 @@ export function Diary({ selectedDate, onDateChange }: Props) {
   const isToday = selDay.isSame(dayjs(), 'day')
   const currentEntry = entries.find((e) => e.date === selectedDate)
   const [openWrite, setOpenWrite] = useState(false)
+  const [openAnalyze, setOpenAnalyze] = useState(false)
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null)
 
   // graphs end on selectedDate
@@ -152,6 +154,29 @@ export function Diary({ selectedDate, onDateChange }: Props) {
           )}
         </div>
 
+        {/* AI analysis card */}
+        <div
+          className="widget"
+          style={{ marginTop: 8, cursor: 'pointer', background: 'linear-gradient(135deg, rgba(181,156,255,0.10), rgba(76,214,255,0.10))', border: '1px solid var(--line)' }}
+          onClick={() => { setOpenAnalyze(true); haptic('medium') }}
+        >
+          <div className="w-row" style={{ gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 12, background: 'var(--panel-2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="mood" size={22} color="var(--violet)" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>ИИ-психолог</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
+                Анализ настроения за период · Premium
+              </div>
+            </div>
+            <Icon name="arrow-r" size={16} color="var(--text-faint)" />
+          </div>
+        </div>
+
         {/* History */}
         <div className="sec-h"><span className="t">Прошлые записи</span></div>
         {recent.length === 0 ? (
@@ -221,6 +246,8 @@ export function Diary({ selectedDate, onDateChange }: Props) {
           } : undefined}
         />
       </Sheet>
+
+      <AnalyzeMoodSheet open={openAnalyze} onClose={() => setOpenAnalyze(false)} />
     </>
   )
 }

@@ -68,9 +68,15 @@ export function CalendarHeader({ selectedDate, onDateChange, userInitial }: Prop
         <span className="app-brand-dot">·</span>
         <span className="app-brand-meta">v1.0</span>
         <div className="app-brand-spacer" />
-        <div className="avatar lime" style={{ width: 24, height: 24, fontSize: 10 }}>
-          {initial}
-        </div>
+        <button
+          aria-label="Premium / профиль"
+          onClick={() => { window.dispatchEvent(new Event('lifeos-open-premium')); haptic('select') }}
+          style={{ border: 0, padding: 0, background: 'transparent', cursor: 'pointer' }}
+        >
+          <div className="avatar lime" style={{ width: 24, height: 24, fontSize: 10 }}>
+            {initial}
+          </div>
+        </button>
       </div>
 
       <div className="app-header">
@@ -87,6 +93,13 @@ export function CalendarHeader({ selectedDate, onDateChange, userInitial }: Prop
           </button>
           <button className="arrow-btn" onClick={handleNext} aria-label="Следующая неделя">
             <Icon name="chev-r" size={16} />
+          </button>
+          <button
+            className="arrow-btn"
+            onClick={() => { window.dispatchEvent(new Event('lifeos-open-reminders')); haptic('light') }}
+            aria-label="Напоминания"
+          >
+            <Icon name="bell" size={14} />
           </button>
         </div>
       </div>
