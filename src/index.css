@@ -49,6 +49,13 @@ body {
 
 button { font: inherit; color: inherit; }
 
+/* Touch-only Mini App — kill default browser/Telegram focus outlines */
+*, *:focus, *:focus-visible, *:focus-within {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+svg, [role="button"] { -webkit-tap-highlight-color: transparent; }
+
 .num, .mono {
   font-family: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
   font-variant-numeric: tabular-nums;

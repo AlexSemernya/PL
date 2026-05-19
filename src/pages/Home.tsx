@@ -30,9 +30,10 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
   const today = dayjs().format('YYYY-MM-DD')
   const dayName = dayjs(selectedDate).format('dddd')
   const dayNumLabel = dayjs(selectedDate).format('D MMM')
-  const total = habits.length || 1
+  const total = habits.length
   const done = completedToday(today)
-  const userName = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name ?? 'Анна'
+  const ringValue = total > 0 ? done / total : 0
+  const userName = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name ?? 'друг'
 
   // sparkline of last 8 days of finance balance change
   const sparkValues = (() => {
@@ -80,12 +81,13 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Привет, {userName}</div>
             <div className="w-sub">
-              {dayName} · {total - done} {pluralRu(total - done, ['привычка', 'привычки', 'привычек'])} осталось
+              {dayName}
+              {total > 0 ? ` · осталось ${total - done} из ${total}` : ' · добро пожаловать'}
             </div>
           </div>
           {streak > 0 && (
             <div className="pill accent">
-              <Icon name="flame" size={12} color="#0a0a0b" /> {streak} {pluralRu(streak, ['день', 'дня', 'дней'])}
+              <Icon name="flame" size={12} color="#0a0a0b" /> {streak} {pluralDays(streak)}
             </div>
           )}
         </div>
@@ -97,13 +99,25 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
             <span className="w-label">{dayNumLabel}</span>
           </div>
           <div className="w-row" style={{ gap: 18, alignItems: 'center' }}>
-            <Ring value={done / total} size={92} stroke={10} label={`${done}/${total}`} sublabel="ПРИВЫЧЕК" />
+            <Ring
+              value={ringValue}
+              size={92}
+              stroke={10}
+              label={total > 0 ? `${done}/${total}` : '+'}
+              sublabel={total > 0 ? 'ПРИВЫЧЕК' : 'ПУСТО'}
+            />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <MiniProgress icon="check" label="Привычки" value={`${done}/${total}`} pct={done / total} color="var(--accent)" />
+              <MiniProgress
+                icon="check"
+                label="Привычки"
+                value={total > 0 ? `${done}/${total}` : '—'}
+                pct={ringValue}
+                color="var(--accent)"
+              />
               <MiniProgress
                 icon="target"
                 label="Цели"
-                value={`${goalsStats.inProgress} актив.`}
+                value={goalsStats.total > 0 ? `${goalsStats.inProgress} актив.` : '—'}
                 pct={goalsStats.total ? goalsStats.completed / goalsStats.total : 0}
                 color="var(--cyan)"
               />
@@ -126,9 +140,9 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
             </div>
             <div className="w-row baseline" style={{ gap: 4, marginBottom: 8 }}>
               <span className="w-big">{done}</span>
-              <span className="w-unit">/{total}</span>
+              <span className="w-unit">{total > 0 ? `/${total}` : ''}</span>
             </div>
-            <BarChart values={weekCounts} hot={todayIdx} />
+            <BarChart values={weekCounts.length ? weekCounts : [0, 0, 0, 0, 0, 0, 0]} hot={todayIdx} />
           </button>
 
           <button className="widget tight" style={{ cursor: 'pointer', border: 0, textAlign: 'left' }} onClick={() => onJumpTab?.('goals')}>
@@ -250,11 +264,12 @@ function formatK(v: number): string {
   return Math.round(v).toString()
 }
 
-function pluralRu(n: number, forms: [string, string, string]): string {
+function pluralDays(n: number): string {
   const abs = Math.abs(n) % 100
   const n1 = abs % 10
-  if (abs > 10 && abs < 20) return forms[2]
-  if (n1 > 1 && n1 < 5) return forms[1]
-  if (n1 === 1) return forms[0]
-  return forms[2]
+  if (abs > 10 && abs < 20) return 'дней'
+  if (n1 === 1) return 'день'
+  if (n1 > 1 && n1 < 5) return 'дня'
+  return 'дней'
 }
+

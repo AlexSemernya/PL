@@ -11,7 +11,7 @@ import { Habits } from './pages/Habits'
 import { Goals } from './pages/Goals'
 import { Finance } from './pages/Finance'
 import { Diary } from './pages/Diary'
-import { seedDemoDataIfEmpty } from './lib/seed'
+import { runMigrations } from './lib/migrations'
 import type { TabId } from './types'
 
 dayjs.extend(isoWeek)
@@ -49,9 +49,9 @@ export default function App() {
     }
   }, [])
 
-  // ─── First-run seed ───
+  // ─── One-shot migrations (wipe demo data, etc.) ───
   useEffect(() => {
-    void seedDemoDataIfEmpty()
+    void runMigrations()
   }, [])
 
   const pageProps = { selectedDate, onDateChange: setSelectedDate }
