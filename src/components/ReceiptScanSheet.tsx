@@ -18,8 +18,9 @@ interface Props {
  */
 type Stage = 'idle' | 'parsing' | 'preview' | 'error'
 
-// Resize image to max 1600px on the longest side before sending, so we don't
-// blow past Claude's request limits or eat the user's mobile data.
+// Resize image before sending so we stay well under both aiohttp's body limit
+// and Claude's input cap. 1280px @ q=0.75 is fine for OCR — receipt text
+// remains crisp, and a typical photo ends up ~150-300 KB before base64.
 async function fileToBase64Resized(file: File): Promise<{ b64: string; type: string }> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const r = new FileReader()
@@ -28,7 +29,6 @@ async function fileToBase64Resized(file: File): Promise<{ b64: string; type: str
     r.readAsDataURL(file)
   })
 
-  // Decode dimensions
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image()
     i.onload = () => resolve(i)
@@ -36,7 +36,7 @@ async function fileToBase64Resized(file: File): Promise<{ b64: string; type: str
     i.src = dataUrl
   })
 
-  const MAX = 1600
+  const MAX = 1280
   const scale = Math.min(1, MAX / Math.max(img.width, img.height))
   const w = Math.round(img.width * scale)
   const h = Math.round(img.height * scale)
@@ -47,8 +47,7 @@ async function fileToBase64Resized(file: File): Promise<{ b64: string; type: str
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('no 2d context')
   ctx.drawImage(img, 0, 0, w, h)
-  const jpeg = canvas.toDataURL('image/jpeg', 0.85)
-  // Strip "data:image/jpeg;base64," prefix
+  const jpeg = canvas.toDataURL('image/jpeg', 0.75)
   const b64 = jpeg.split(',')[1]
   return { b64, type: 'image/jpeg' }
 }
@@ -76,9 +75,10 @@ export function ReceiptScanSheet({ open, onClose }: Props) {
     setStage('parsing'); setError(null); haptic('medium')
     try {
       const { b64, type } = await fileToBase64Resized(file)
+      console.log('[receipt] resized payload', { bytes: b64.length, type, originalKB: Math.round(file.size / 1024) })
       const res = await api.parseReceipt(b64, type)
       if (res.error) {
-        setError(res.error)
+        setError(`Сервер: ${res.error}`)
         setStage('error')
         haptic('error')
         return
@@ -97,7 +97,14 @@ export function ReceiptScanSheet({ open, onClose }: Props) {
       setStage('preview')
       haptic('success')
     } catch (e) {
-      setError((e as Error).message || 'неизвестная ошибка')
+      const msg = (e as Error)?.message || String(e)
+      // iOS Safari shows "Load failed" for any network-level fetch failure.
+      // Map it to something human-readable so user knows what to try.
+      const friendly =
+        msg.includes('Load failed') || msg.includes('NetworkError') || msg.includes('Failed to fetch')
+          ? 'Не удалось отправить фото. Проверь интернет или попробуй фото поменьше.'
+          : msg
+      setError(friendly)
       setStage('error')
       haptic('error')
     }
