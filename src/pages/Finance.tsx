@@ -112,7 +112,7 @@ export function Finance({ selectedDate, onDateChange }: Props) {
               {isToday ? '' : ` · ${selDay.format('D MMM')}`}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <div className="segmented">
               {(['Месяц', 'Год'] as const).map((r) => (
                 <button key={r} className={range === r ? 'on' : ''}
@@ -120,8 +120,20 @@ export function Finance({ selectedDate, onDateChange }: Props) {
               ))}
             </div>
             <button
+              onClick={() => { setOpenScan(true); haptic('medium') }}
+              aria-label="Сканировать чек"
+              style={{
+                width: 38, height: 38, borderRadius: 12, border: 0, cursor: 'pointer',
+                background: 'var(--panel)', color: 'var(--text)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.15s, transform 0.1s',
+              }}
+            >
+              <Icon name="camera" size={16} color="var(--text)" stroke={1.8} />
+            </button>
+            <button
               className="fab"
-              style={{ width: 'auto', padding: '10px 14px', borderRadius: 14 }}
+              style={{ width: 'auto', padding: '10px 14px', borderRadius: 12 }}
               onClick={() => { setOpenAdd(true); haptic('medium') }}
               aria-label="Добавить операцию"
             >
@@ -267,14 +279,6 @@ export function Finance({ selectedDate, onDateChange }: Props) {
             <Icon name="plus" size={14} /> Добавить операцию
           </button>
         )}
-
-        <button
-          className="fab ghost"
-          style={{ marginTop: 8 }}
-          onClick={() => { setOpenScan(true); haptic('medium') }}
-        >
-          📷 Сканировать чек
-        </button>
       </div>
 
       <ReceiptScanSheet open={openScan} onClose={() => setOpenScan(false)} />
