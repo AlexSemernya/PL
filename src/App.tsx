@@ -10,6 +10,7 @@ import { StorageIndicator } from './components/StorageIndicator'
 import { Paywall } from './components/Paywall'
 import { PremiumSheet } from './components/PremiumSheet'
 import { RemindersSheet } from './components/RemindersSheet'
+import { HelpSheet } from './components/HelpSheet'
 import { Home } from './pages/Home'
 import { Habits } from './pages/Habits'
 import { Goals } from './pages/Goals'
@@ -33,16 +34,20 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [showPremium, setShowPremium] = useState(false)
   const [showReminders, setShowReminders] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
-  // Listen for in-app events triggered from CalendarHeader bell/avatar.
+  // Listen for in-app events triggered from CalendarHeader bell/avatar etc.
   useEffect(() => {
     const onOpenPremium = () => setShowPremium(true)
     const onOpenReminders = () => setShowReminders(true)
+    const onOpenHelp = () => setShowHelp(true)
     window.addEventListener('lifeos-open-premium', onOpenPremium)
     window.addEventListener('lifeos-open-reminders', onOpenReminders)
+    window.addEventListener('lifeos-open-help', onOpenHelp)
     return () => {
       window.removeEventListener('lifeos-open-premium', onOpenPremium)
       window.removeEventListener('lifeos-open-reminders', onOpenReminders)
+      window.removeEventListener('lifeos-open-help', onOpenHelp)
     }
   }, [])
 
@@ -125,6 +130,7 @@ export default function App() {
       {/* Modal sheets — premium / reminders / paywall */}
       <PremiumSheet open={showPremium} onClose={() => setShowPremium(false)} />
       <RemindersSheet open={showReminders} onClose={() => setShowReminders(false)} />
+      <HelpSheet open={showHelp} onClose={() => setShowHelp(false)} />
       {showPaywall && <Paywall />}
     </div>
   )

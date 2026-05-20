@@ -4,6 +4,7 @@ import { CalendarHeader } from '../components/CalendarHeader'
 import { Icon, type IconName } from '../components/Icons'
 import { TickRow, Sparkline } from '../components/Widgets'
 import { Sheet } from '../components/Sheet'
+import { ReceiptScanSheet } from '../components/ReceiptScanSheet'
 import { useFinanceStore } from '../store/financeStore'
 import { haptic } from '../lib/haptic'
 import type { FinanceCategory, FinanceType } from '../types'
@@ -40,6 +41,7 @@ export function Finance({ selectedDate, onDateChange }: Props) {
 
   const [range, setRange] = useState<'Месяц' | 'Год'>('Месяц')
   const [openAdd, setOpenAdd] = useState(false)
+  const [openScan, setOpenScan] = useState(false)
 
   // Range filter — Month uses selectedDate's month; Year uses its year.
   const selDay = dayjs(selectedDate)
@@ -265,7 +267,17 @@ export function Finance({ selectedDate, onDateChange }: Props) {
             <Icon name="plus" size={14} /> Добавить операцию
           </button>
         )}
+
+        <button
+          className="fab ghost"
+          style={{ marginTop: 8 }}
+          onClick={() => { setOpenScan(true); haptic('medium') }}
+        >
+          📷 Сканировать чек
+        </button>
       </div>
+
+      <ReceiptScanSheet open={openScan} onClose={() => setOpenScan(false)} />
 
       <Sheet open={openAdd} onClose={() => setOpenAdd(false)} title="Новая операция">
         <FinanceForm

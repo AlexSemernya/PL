@@ -136,4 +136,25 @@ export const api = {
 
   /** Generate a t.me deep-link that auto-friends the receiver on /start. */
   createInvite: () => call<InviteResponse>('/api/friends/invite'),
+
+  /** Top users you're not yet friends with — for the Discover section. */
+  getDiscover: () => call<{ users: FriendDTO[] }>('/api/discover'),
+
+  /** Add a friend by tg_id directly (from Discover list). Two-way. */
+  addFriend: (tg_id: number) =>
+    call<{ ok: boolean; created: boolean }>('/api/friends/add', { tg_id }),
+
+  /** Premium-only. Send a receipt photo (base64) — get back parsed data. */
+  parseReceipt: (image_b64: string, media_type = 'image/jpeg') =>
+    call<ReceiptParse>('/api/receipt', { image_b64, media_type }),
+}
+
+export interface ReceiptParse {
+  amount?: number
+  date?: string | null
+  vendor?: string
+  category?: string
+  confidence?: number
+  note?: string
+  error?: string
 }

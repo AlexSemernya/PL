@@ -122,6 +122,14 @@ export function PremiumSheet({ open, onClose }: { open: boolean; onClose: () => 
         )}
 
         {err && <div style={{ color: 'var(--red)', fontSize: 12 }}>{err}</div>}
+
+        <button
+          className="fab ghost"
+          style={{ marginTop: 6 }}
+          onClick={() => { onClose(); window.dispatchEvent(new Event('lifeos-open-help')); haptic('light') }}
+        >
+          ❓ Помощь и поддержка
+        </button>
       </div>
     </Sheet>
   )
