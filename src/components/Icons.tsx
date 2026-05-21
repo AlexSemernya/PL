@@ -11,6 +11,7 @@ export type IconName =
   | 'run' | 'bell' | 'edit' | 'mic' | 'arrow-r' | 'arrow-u' | 'arrow-d'
   | 'dots' | 'star' | 'coffee' | 'mood' | 'food' | 'bag' | 'card'
   | 'gift' | 'film' | 'note' | 'shoe' | 'x' | 'trash' | 'users' | 'camera'
+  | 'leaf' | 'zap' | 'gem' | 'sparkle' | 'flag' | 'mountain' | 'calendar'
 
 export function Icon({ name, size = 20, color = 'currentColor', stroke = 1.8 }: IconProps) {
   const p = {
@@ -52,6 +53,13 @@ export function Icon({ name, size = 20, color = 'currentColor', stroke = 1.8 }: 
     case 'trash':   return <svg {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
     case 'users':   return <svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     case 'camera':  return <svg {...p}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    case 'leaf':    return <svg {...p}><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10ZM2 22s0-7 3-11"/></svg>
+    case 'zap':     return <svg {...p}><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill={color} stroke="none"/></svg>
+    case 'gem':     return <svg {...p}><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M12 3v18"/></svg>
+    case 'sparkle': return <svg {...p}><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2" fill={color} stroke="none"/></svg>
+    case 'flag':    return <svg {...p}><path d="M4 21V4M4 4l14 0-3 4 3 4-14 0"/></svg>
+    case 'mountain':return <svg {...p}><path d="M3 20l6-10 4 6 3-4 5 8z"/><circle cx="9" cy="6" r="1.5" fill={color} stroke="none"/></svg>
+    case 'calendar':return <svg {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
     default: return null
   }
 }

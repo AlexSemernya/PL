@@ -8,6 +8,7 @@ import { useFinanceStore } from '../store/financeStore'
 import { useDiaryStore } from '../store/diaryStore'
 import { haptic } from '../lib/haptic'
 import type { TabId } from '../types'
+import { TierBadge, tierMeta } from '../components/Tier'
 
 interface Props {
   selectedDate: string
@@ -149,11 +150,12 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
 
           <button className="widget tight" style={{ cursor: 'pointer', border: 0, textAlign: 'left' }} onClick={() => onJumpTab?.('goals')}>
             <div className="w-head">
-              <div className="w-title cyan"><Icon name="target" size={11} color="var(--cyan)" /> ЦЕЛИ</div>
+              <div className="w-title cyan"><Icon name="flag" size={11} color="var(--cyan)" /> ЦЕЛИ</div>
+              {featured && <TierBadge tier={featured.tier} kind="goal" size="xs" />}
             </div>
             {featured ? (
               <div className="w-row" style={{ gap: 10, alignItems: 'center' }}>
-                <Ring value={featuredPct} size={56} stroke={6} color="var(--cyan)" label={`${Math.round(featuredPct * 100)}%`} />
+                <Ring value={featuredPct} size={56} stroke={6} color={tierMeta(featured.tier).color} label={`${Math.round(featuredPct * 100)}%`} />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{featured.title}</div>
                   <div className="w-label" style={{ marginTop: 2 }}>

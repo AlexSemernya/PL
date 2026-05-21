@@ -5,7 +5,9 @@ import { Icon, type IconName } from '../components/Icons'
 import { Sheet } from '../components/Sheet'
 import { useHabitsStore } from '../store/habitsStore'
 import { haptic } from '../lib/haptic'
-import type { Habit } from '../types'
+import type { Habit, HabitTier } from '../types'
+import { HABIT_TIER_XP } from '../types'
+import { TierBadge, TierPicker } from '../components/Tier'
 
 interface Props {
   selectedDate: string
@@ -168,8 +170,16 @@ export function Habits({ selectedDate, onDateChange }: Props) {
                   <Icon name={(h.icon as IconName) ?? 'check'} size={16} color={h.color ?? 'var(--text-dim)'} />
                 </div>
                 <div className="meta">
-                  <div className="t1">{h.title}</div>
-                  <div className="t2">{done ? '✓ выполнено' : 'не отмечено'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className="t1">{h.title}</span>
+                    {h.tier && h.tier !== 'normal' && (
+                      <TierBadge tier={h.tier} kind="habit" size="xs" />
+                    )}
+                  </div>
+                  <div className="t2">
+                    {done ? '✓ выполнено' : 'не отмечено'}
+                    {' · +'}{HABIT_TIER_XP[(h.tier ?? 'normal') as HabitTier]} XP
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                   <div style={{ display: 'flex', gap: 3 }}>
@@ -214,6 +224,8 @@ export function Habits({ selectedDate, onDateChange }: Props) {
                 frequency: data.frequency ?? 'daily',
                 daysOfWeek: data.daysOfWeek,
                 reminder: data.reminder,
+                tier: data.tier,
+                tierConfirmedByAI: data.tierConfirmedByAI,
               })
             }
             haptic('success')
@@ -264,6 +276,8 @@ function HabitForm({
   const [freqMode, setFreqMode] = useState<FreqMode>(deriveFreqMode(initial))
   const [customDays, setCustomDays] = useState<number[]>(initial?.daysOfWeek ?? [0, 1, 2, 3, 4])
   const [reminder, setReminder] = useState(initial?.reminder ?? '')
+  const [tier, setTier] = useState<HabitTier>((initial?.tier ?? 'normal') as HabitTier)
+  const [tierConfirmedByAI, setTierConfirmedByAI] = useState(initial?.tierConfirmedByAI ?? false)
 
   const toggleDay = (d: number) =>
     setCustomDays((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d].sort()))
@@ -288,6 +302,16 @@ function HabitForm({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Например — пробежка"
           style={fieldInput}
+        />
+      </Field>
+
+      <Field label="Сложность (влияет на XP за каждый чек-ин)">
+        <TierPicker
+          kind="habit"
+          value={tier}
+          onChange={(t) => { setTier(t as HabitTier); setTierConfirmedByAI(false) }}
+          title={title}
+          onAIConfirmed={() => setTierConfirmedByAI(true)}
         />
       </Field>
 
@@ -391,6 +415,8 @@ function HabitForm({
             title: title.trim(),
             icon,
             color,
+            tier,
+            tierConfirmedByAI,
             ...buildFreqData(),
             reminder: reminder || undefined,
           })

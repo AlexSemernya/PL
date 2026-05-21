@@ -440,6 +440,19 @@ export function Friends({ selectedDate, onDateChange }: Props) {
           {seg === 'Гора' ? (
             <>
               <MountainMap friends={list} focus={focus ?? me?.id ?? ''} onFocus={setFocus} />
+              {/* Tier hint: explains weighted XP so users understand the climb math */}
+              <div style={{
+                marginTop: 8, padding: '8px 10px', borderRadius: 10,
+                background: 'var(--panel-2)',
+                fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.4,
+              }}>
+                Высота на горе = XP. Цели и привычки дают XP по сложности:
+                <span style={{ color: '#6be99a', fontWeight: 600 }}> лёгкая</span>,
+                <span style={{ color: '#c6f84e', fontWeight: 600 }}> обычная</span>,
+                <span style={{ color: '#ff8a3d', fontWeight: 600 }}> сложная</span>,
+                <span style={{ color: '#b59cff', fontWeight: 600 }}> эпическая</span>.
+                Марафон ≠ поход в магазин.
+              </div>
               {/* Focused friend bar */}
               {focused && (
                 <div className="w-row" style={{

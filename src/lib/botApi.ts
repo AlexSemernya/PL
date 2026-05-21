@@ -101,6 +101,18 @@ export interface StatsSnapshot {
   goals_active: number
   diary_entries: number
   longest_streak: number
+  // Tier-weighted XP — pre-computed on the client so the server doesn't need
+  // to know about per-item tiers. Old clients omit these fields and the bot
+  // falls back to the legacy equal-weight formula.
+  habit_xp_alltime?: number
+  goal_xp_completed?: number
+  goal_xp_progress?: number
+}
+
+export interface TierSuggestion {
+  tier?: 'light' | 'normal' | 'hard' | 'epic'
+  reason?: string
+  error?: string
 }
 
 export interface InviteResponse {
@@ -147,6 +159,10 @@ export const api = {
   /** Premium-only. Send a receipt photo (base64) — get back parsed data. */
   parseReceipt: (image_b64: string, media_type = 'image/jpeg') =>
     call<ReceiptParse>('/api/receipt', { image_b64, media_type }),
+
+  /** Ask Claude to suggest a difficulty tier for a goal/habit title. */
+  suggestTier: (title: string, kind: 'goal' | 'habit') =>
+    call<TierSuggestion>('/api/suggest-tier', { title, kind }),
 }
 
 export interface ReceiptParse {

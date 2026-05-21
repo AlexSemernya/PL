@@ -1,3 +1,17 @@
+// ─── Тиры сложности ────────────────────────────────────
+// Goals get all four; habits get the first three. XP weights:
+//   Goals  — light=5, normal=25, hard=100, epic=500 (one-time, on completion)
+//   Habits — light=1, normal=3,  hard=10           (per check-in)
+export type GoalTier = 'light' | 'normal' | 'hard' | 'epic'
+export type HabitTier = 'light' | 'normal' | 'hard'
+
+export const GOAL_TIER_XP: Record<GoalTier, number> = {
+  light: 5, normal: 25, hard: 100, epic: 500,
+}
+export const HABIT_TIER_XP: Record<HabitTier, number> = {
+  light: 1, normal: 3, hard: 10,
+}
+
 // ─── Привычки ───────────────────────────────────────────
 export interface Habit {
   id: string
@@ -12,6 +26,8 @@ export interface Habit {
   goal?: number
   linkedGoalId?: string
   reminder?: string // 'HH:mm'
+  tier?: HabitTier              // default 'normal' if missing
+  tierConfirmedByAI?: boolean   // true if user accepted AI suggestion
 }
 
 // ─── Цели ───────────────────────────────────────────────
@@ -30,6 +46,8 @@ export interface Goal {
   progressCurrent?: number
   progressTarget?: number
   progressUnit?: string
+  tier?: GoalTier              // default 'normal' if missing
+  tierConfirmedByAI?: boolean
 }
 
 export interface GoalStep {
