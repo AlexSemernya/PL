@@ -116,8 +116,8 @@ export function Habits({ selectedDate, onDateChange }: Props) {
             <span className="w-unit">{streak === 1 ? 'день' : streak > 1 && streak < 5 ? 'дня' : 'дней'} подряд</span>
           </div>
           <div
-            className="habit-grid"
-            style={{ gridTemplateColumns: `repeat(${heatmapCols}, 1fr)` }}
+            className={`habit-grid ${tab === 'Месяц' ? 'dense-month' : tab === 'Год' ? 'dense-year' : ''}`}
+            style={{ gridTemplateColumns: `repeat(${heatmapCols}, minmax(0, 1fr))` }}
           >
             {heatmap.map((c, i) => (
               <div key={i} className={`habit-cell ${c.level ? 'l' + c.level : ''}`} title={`${c.date}: ${doneOn(c.date)} привычек`} />

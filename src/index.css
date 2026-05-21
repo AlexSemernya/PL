@@ -282,9 +282,29 @@ svg, [role="button"] { -webkit-tap-highlight-color: transparent; }
 .tab.on { color: var(--accent); }
 .tab span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-/* Heatmap */
-.habit-grid { display: grid; grid-template-columns: repeat(15, 1fr); gap: 3px; }
-.habit-cell { aspect-ratio: 1; border-radius: 3px; background: var(--line); }
+/* Heatmap
+   Use minmax(0, 1fr) so dense layouts (Month=15 cols, Year=53 cols) actually
+   shrink instead of overflowing the widget. Cell height is decoupled from
+   width via density modifiers so Year cells stay readable. */
+.habit-grid {
+  display: grid;
+  grid-template-columns: repeat(15, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  overflow: hidden;
+}
+.habit-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--line);
+  min-width: 0;
+}
+/* Density modifiers — picked by JS via heatmapCols. Year (53 cols) drops
+   aspect-ratio and uses a fixed height to keep cells visible at 4-6px wide. */
+.habit-grid.dense-month { gap: 4px; }
+.habit-grid.dense-month .habit-cell { aspect-ratio: 1; }
+.habit-grid.dense-year  { gap: 2px; }
+.habit-grid.dense-year  .habit-cell { aspect-ratio: auto; height: 12px; }
 .habit-cell.l1 { background: rgba(198,248,78,0.20); }
 .habit-cell.l2 { background: rgba(198,248,78,0.45); }
 .habit-cell.l3 { background: rgba(198,248,78,0.75); }
