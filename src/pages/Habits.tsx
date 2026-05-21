@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarHeader } from '../components/CalendarHeader'
 import { Icon, type IconName } from '../components/Icons'
@@ -28,6 +28,22 @@ export function Habits({ selectedDate, onDateChange }: Props) {
   const [tab, setTab] = useState<'Неделя' | 'Месяц' | 'Год'>('Неделя')
   const [openAdd, setOpenAdd] = useState(false)
   const [editing, setEditing] = useState<Habit | null>(null)
+  // Title prefilled by inline-mode deep link (`lifeos-create-habit` event).
+  // Lifted into state so the form picks it up on its first render.
+  const [prefilledTitle, setPrefilledTitle] = useState<string>('')
+
+  // Listen for the inline-mode "create habit X" deep link from App.tsx.
+  useEffect(() => {
+    const onCreate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { title?: string } | undefined
+      if (!detail?.title) return
+      setEditing(null)
+      setPrefilledTitle(detail.title)
+      setOpenAdd(true)
+    }
+    window.addEventListener('lifeos-create-habit', onCreate)
+    return () => window.removeEventListener('lifeos-create-habit', onCreate)
+  }, [])
 
   const doneOn = (d: string) => habits.filter((h) => h.completedDates.includes(d)).length
   const selDay = dayjs(selectedDate)
@@ -227,9 +243,10 @@ export function Habits({ selectedDate, onDateChange }: Props) {
         )}
       </div>
 
-      <Sheet open={openAdd} onClose={() => setOpenAdd(false)} title={editing ? 'Изменить привычку' : 'Новая привычка'}>
+      <Sheet open={openAdd} onClose={() => { setOpenAdd(false); setPrefilledTitle('') }} title={editing ? 'Изменить привычку' : 'Новая привычка'}>
         <HabitForm
           initial={editing}
+          prefilledTitle={prefilledTitle}
           onSubmit={(data) => {
             if (editing) {
               useHabitsStore.getState().updateHabit(editing.id, data)
@@ -247,6 +264,7 @@ export function Habits({ selectedDate, onDateChange }: Props) {
             }
             haptic('success')
             setOpenAdd(false)
+            setPrefilledTitle('')
             setEditing(null)
           }}
           onDelete={
@@ -280,14 +298,17 @@ function deriveFreqMode(h: Habit | null): FreqMode {
 
 function HabitForm({
   initial,
+  prefilledTitle,
   onSubmit,
   onDelete,
 }: {
   initial: Habit | null
+  prefilledTitle?: string
   onSubmit: (data: Partial<Habit>) => void
   onDelete?: () => void
 }) {
-  const [title, setTitle] = useState(initial?.title ?? '')
+  // Priority: editing initial > prefilled (from deep link) > empty
+  const [title, setTitle] = useState(initial?.title ?? prefilledTitle ?? '')
   const [icon, setIcon] = useState<IconName>((initial?.icon as IconName) ?? 'drop')
   const [color, setColor] = useState(initial?.color ?? '#c6f84e')
   const [freqMode, setFreqMode] = useState<FreqMode>(deriveFreqMode(initial))

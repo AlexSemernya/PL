@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarHeader } from '../components/CalendarHeader'
 import { Icon } from '../components/Icons'
@@ -203,6 +203,21 @@ export function Goals({ selectedDate, onDateChange }: Props) {
   const [openAdd, setOpenAdd] = useState(false)
   const [editing, setEditing] = useState<Goal | null>(null)
   const [explainerOpen, setExplainerOpen] = useState(false)
+  // Title prefilled by inline-mode deep link (`lifeos-create-goal` event).
+  const [prefilledTitle, setPrefilledTitle] = useState<string>('')
+
+  // Listen for the inline-mode "create goal X" deep link from App.tsx.
+  useEffect(() => {
+    const onCreate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { title?: string } | undefined
+      if (!detail?.title) return
+      setEditing(null)
+      setPrefilledTitle(detail.title)
+      setOpenAdd(true)
+    }
+    window.addEventListener('lifeos-create-goal', onCreate)
+    return () => window.removeEventListener('lifeos-create-goal', onCreate)
+  }, [])
 
   // Sort active goals: epic > hard > normal > light, then by deadline
   const tierOrder: Record<GoalTier, number> = { epic: 0, hard: 1, normal: 2, light: 3 }
@@ -352,9 +367,10 @@ export function Goals({ selectedDate, onDateChange }: Props) {
       </div>
 
       {/* Create/edit sheet */}
-      <Sheet open={openAdd} onClose={() => setOpenAdd(false)} title={editing ? 'Цель' : 'Новая цель'}>
+      <Sheet open={openAdd} onClose={() => { setOpenAdd(false); setPrefilledTitle('') }} title={editing ? 'Цель' : 'Новая цель'}>
         <GoalForm
           initial={editing}
+          prefilledTitle={prefilledTitle}
           onSubmit={(data) => {
             if (editing) {
               updateGoal(editing.id, data)
@@ -374,6 +390,7 @@ export function Goals({ selectedDate, onDateChange }: Props) {
             }
             haptic('success')
             setOpenAdd(false)
+            setPrefilledTitle('')
             setEditing(null)
           }}
           onComplete={
@@ -427,14 +444,16 @@ export function Goals({ selectedDate, onDateChange }: Props) {
 }
 
 function GoalForm({
-  initial, onSubmit, onComplete, onDelete,
+  initial, prefilledTitle, onSubmit, onComplete, onDelete,
 }: {
   initial: Goal | null
+  prefilledTitle?: string
   onSubmit: (data: Partial<Goal>) => void
   onComplete?: () => void
   onDelete?: () => void
 }) {
-  const [title, setTitle] = useState(initial?.title ?? '')
+  // Priority: editing initial > prefilled (from inline deep link) > empty
+  const [title, setTitle] = useState(initial?.title ?? prefilledTitle ?? '')
   const [endDate, setEndDate] = useState(initial?.endDate ?? '')
   const [tier, setTier] = useState<GoalTier>((initial?.tier ?? 'normal') as GoalTier)
   const [tierConfirmedByAI, setTierConfirmedByAI] = useState(initial?.tierConfirmedByAI ?? false)

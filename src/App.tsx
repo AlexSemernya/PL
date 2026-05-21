@@ -20,6 +20,7 @@ import { Friends } from './pages/Friends'
 import { useUser } from './lib/useUser'
 import { api } from './lib/botApi'
 import { computeStatsSnapshot } from './lib/computeStats'
+import { consumeStartParam } from './lib/startParam'
 import { useHabitsStore } from './store/habitsStore'
 import { useGoalsStore } from './store/goalsStore'
 import { useDiaryStore } from './store/diaryStore'
@@ -49,6 +50,25 @@ export default function App() {
       window.removeEventListener('lifeos-open-reminders', onOpenReminders)
       window.removeEventListener('lifeos-open-help', onOpenHelp)
     }
+  }, [])
+
+  // ─── Handle inline-deep-link from bot (`?startapp=ch_<b64>` / `cg_...`) ───
+  // The bot encodes a "create habit X" or "create goal X" intent in start_param.
+  // We switch to the right tab and emit an event that the page picks up to
+  // open its create sheet with title prefilled. Fired once on first render.
+  useEffect(() => {
+    const intent = consumeStartParam()
+    if (!intent) return
+    const eventName =
+      intent.kind === 'create_habit' ? 'lifeos-create-habit'
+      : 'lifeos-create-goal'
+    // Switch tab BEFORE dispatching so the listener on the destination page
+    // is already mounted when the event fires.
+    setTab(intent.kind === 'create_habit' ? 'habits' : 'goals')
+    // Defer one frame so the page mounts and registers its listener.
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent(eventName, { detail: { title: intent.title } }))
+    })
   }, [])
 
   // ─── Telegram WebApp init + viewport sync ───
