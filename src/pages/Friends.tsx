@@ -10,7 +10,7 @@
  * Data is still mocked — when the bot exposes /api/friends we'll swap FRIENDS
  * for a real fetch (same shape).
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarHeader } from '../components/CalendarHeader'
 import { Icon } from '../components/Icons'
@@ -354,9 +354,6 @@ export function Friends({ selectedDate, onDateChange }: Props) {
   const { data: friends, loading, error, reload } = useFriends()
   const [focus, setFocus] = useState<string | null>(null)
   const [seg, setSeg] = useState<'Гора' | 'Лига'>('Гора')
-  const [discover, setDiscover] = useState<Friend[]>([])
-  const [discoverLoading, setDiscoverLoading] = useState(false)
-  const [addingIds, setAddingIds] = useState<Set<string>>(new Set())
 
   const list: Friend[] = friends ?? []
   const ranked = useMemo(() => [...list].sort((a, b) => b.pct - a.pct), [list])
@@ -365,34 +362,6 @@ export function Friends({ selectedDate, onDateChange }: Props) {
   const myRank = ranked.findIndex((f) => f.you) + 1 || 1
   const focused = list.find((f) => f.id === focus) ?? me
   const monthLabel = dayjs(selectedDate).format('MMMM').toUpperCase()
-
-  // Load Discover users when there are 0 friends, OR on demand
-  useEffect(() => {
-    let cancelled = false
-    setDiscoverLoading(true)
-    api.getDiscover()
-      .then((res) => { if (!cancelled) setDiscover(res.users) })
-      .catch(() => { /* silent — empty discover is fine */ })
-      .finally(() => { if (!cancelled) setDiscoverLoading(false) })
-    return () => { cancelled = true }
-  }, [friends])  // reload when friend list changes
-
-  const addAsFriend = async (f: Friend) => {
-    haptic('medium')
-    setAddingIds((s) => new Set(s).add(f.id))
-    try {
-      await api.addFriend(parseInt(f.id, 10))
-      haptic('success')
-      // Optimistic: remove from discover list, refresh friends list
-      setDiscover((d) => d.filter((x) => x.id !== f.id))
-      await reload()
-    } catch (e) {
-      haptic('error')
-      alert(`Не получилось: ${(e as Error).message}`)
-    } finally {
-      setAddingIds((s) => { const n = new Set(s); n.delete(f.id); return n })
-    }
-  }
 
   return (
     <>
@@ -548,47 +517,37 @@ export function Friends({ selectedDate, onDateChange }: Props) {
           </div>
         </div>
 
-        {/* Discover */}
-        {discover.length > 0 && (
-          <>
-            <div className="sec-h">
-              <span className="t">Кто ещё в LifeOS</span>
-              <span className="a" style={{ color: 'var(--text-faint)' }}>топ {discover.length}</span>
+        {/* Invite CTA card — friends are private now, no Discover.
+            Reward for inviting: +3 days of free access per new friend (cap 30d). */}
+        <div
+          onClick={shareInviteLink}
+          style={{
+            marginTop: 4, marginBottom: 8,
+            padding: 14, borderRadius: 16,
+            background: 'linear-gradient(135deg, rgba(198,248,78,0.15), rgba(76,214,255,0.10))',
+            border: '1px solid rgba(198,248,78,0.35)',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}
+        >
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: 'var(--accent)', color: '#0a0a0b',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Icon name="users" size={20} color="#0a0a0b" stroke={2.4} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>
+              Пригласи друга — +3 дня бесплатно
             </div>
-            {discover.map((f) => {
-              const adding = addingIds.has(f.id)
-              return (
-                <div key={f.id} className="lrow">
-                  <div className="avatar" style={{
-                    background: f.color, color: '#0a0a0b', width: 36, height: 36, fontSize: 14,
-                  }}>{f.initial}</div>
-                  <div className="meta">
-                    <div className="w-row between">
-                      <span style={{ fontSize: 14, fontWeight: 600 }}>{f.name}</span>
-                      <span className="num" style={{ fontSize: 11, fontWeight: 600, color: f.color }}>
-                        L{f.lvl}
-                      </span>
-                    </div>
-                    <div className="w-row" style={{ gap: 10, marginTop: 4 }}>
-                      <span className="w-label">{f.xp.toLocaleString('ru-RU')} XP</span>
-                      <span className="w-label" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Icon name="flame" size={9} color="var(--warn)" />{f.streak}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    className="fab"
-                    style={{ width: 'auto', padding: '8px 14px', borderRadius: 12, fontSize: 12 }}
-                    disabled={adding}
-                    onClick={(e) => { e.stopPropagation(); addAsFriend(f) }}
-                  >
-                    {adding ? '…' : '+ Друг'}
-                  </button>
-                </div>
-              )
-            })}
-          </>
-        )}
+            <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.35 }}>
+              За каждого, кто перейдёт по твоей ссылке (до 30 дней)
+            </div>
+          </div>
+          <Icon name="arrow-r" size={18} color="var(--accent)" />
+        </div>
 
         {/* List */}
         <div className="sec-h">
@@ -598,7 +557,11 @@ export function Friends({ selectedDate, onDateChange }: Props) {
 
         {ranked.length === 0 && !loading ? (
           <div className="widget" style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13, padding: 24 }}>
-            Пока никого нет. Пригласи друга, чтобы вместе вести привычки и видеть прогресс друг друга.
+            Пока никого нет.
+            <div style={{ marginTop: 6, fontSize: 12 }}>
+              Пригласи друга — увидите прогресс друг друга на горе.
+              <br />Никто другой не увидит твой профиль.
+            </div>
           </div>
         ) : (
           ranked.map((f) => (
