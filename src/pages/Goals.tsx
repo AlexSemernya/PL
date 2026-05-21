@@ -9,6 +9,7 @@ import type { Goal, GoalTier } from '../types'
 import { GOAL_TIER_XP } from '../types'
 import { Field, fieldInput } from './Habits'
 import { TierBadge, TierPicker, tierMeta } from '../components/Tier'
+import { SwipeRow } from '../components/SwipeRow'
 import type React from 'react'
 
 /**
@@ -113,7 +114,6 @@ function ExpeditionCard({
         background: 'var(--panel)',
         borderRadius: 16,
         padding: '14px 14px 14px 18px',
-        marginBottom: 8,
         overflow: 'hidden',
         border: '1px solid var(--line)',
       }}
@@ -285,14 +285,19 @@ export function Goals({ selectedDate, onDateChange }: Props) {
           </div>
         )}
 
-        {/* Expedition cards */}
+        {/* Expedition cards — swipe right to mark complete + claim full tier XP */}
         {active.map((g) => (
-          <ExpeditionCard
+          <SwipeRow
             key={g.id}
-            goal={g}
-            onOpen={() => { setEditing(g); setOpenAdd(true) }}
-            onProgress={(v) => updateGoal(g.id, { progressCurrent: v })}
-          />
+            onComplete={() => { toggleComplete(g.id); haptic('success') }}
+            actionLabel={`+${GOAL_TIER_XP[(g.tier ?? 'normal') as GoalTier]} XP`}
+          >
+            <ExpeditionCard
+              goal={g}
+              onOpen={() => { setEditing(g); setOpenAdd(true) }}
+              onProgress={(v) => updateGoal(g.id, { progressCurrent: v })}
+            />
+          </SwipeRow>
         ))}
 
         {/* Empty state */}

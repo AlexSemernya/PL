@@ -8,6 +8,7 @@ import { haptic } from '../lib/haptic'
 import type { Habit, HabitTier } from '../types'
 import { HABIT_TIER_XP } from '../types'
 import { TierBadge, TierPicker } from '../components/Tier'
+import { SwipeRow } from '../components/SwipeRow'
 
 interface Props {
   selectedDate: string
@@ -32,15 +33,17 @@ export function Habits({ selectedDate, onDateChange }: Props) {
   const selDay = dayjs(selectedDate)
   const isToday = selDay.isSame(dayjs(), 'day')
 
-  // Heatmap window: Week=7, Month=30, Year=365 (with thinner cells)
+  // Heatmap window: Week=7, Month=30, Year=365 (with thinner cells).
+  // Order: TODAY on the left, walking back into the past as you go right.
+  // This matches how users mentally place "now" at the start.
   const { cells: heatmap, cols: heatmapCols } = useMemo(() => {
     const days = tab === 'Неделя' ? 7 : tab === 'Месяц' ? 30 : 365
     const cols = tab === 'Неделя' ? 7 : tab === 'Месяц' ? 15 : 53
     const items: { level: 0 | 1 | 2 | 3 | 4; date: string }[] = []
-    const start = selDay.subtract(days - 1, 'day')
     const maxPerDay = Math.max(1, habits.length)
     for (let i = 0; i < days; i++) {
-      const date = start.add(i, 'day').format('YYYY-MM-DD')
+      // i=0 → today (leftmost), i=days-1 → oldest day (rightmost)
+      const date = selDay.subtract(i, 'day').format('YYYY-MM-DD')
       const c = doneOn(date)
       const ratio = c / maxPerDay
       const level: 0 | 1 | 2 | 3 | 4 = c === 0 ? 0 : ratio >= 1 ? 4 : ratio >= 0.75 ? 3 : ratio >= 0.5 ? 2 : 1
@@ -151,12 +154,14 @@ export function Habits({ selectedDate, onDateChange }: Props) {
         ) : (
           habits.map((h) => {
             const done = h.completedDates.includes(selectedDate)
-            const last5 = Array.from({ length: 5 }, (_, i) => selDay.subtract(4 - i, 'day').format('YYYY-MM-DD'))
+            // Order: today is the LEFTMOST dot; older days walk to the right.
+            const last5 = Array.from({ length: 5 }, (_, i) => selDay.subtract(i, 'day').format('YYYY-MM-DD'))
             const streakH = getStreak(h.id)
-            return (
+            const row = (
               <button
                 key={h.id}
                 className={`lrow ${done ? 'done' : ''}`}
+                style={{ width: '100%', marginBottom: 0 }}
                 onClick={() => { toggleComplete(h.id, selectedDate); haptic(done ? 'light' : 'success') }}
                 onContextMenu={(e) => { e.preventDefault(); setEditing(h); setOpenAdd(true) }}
               >
@@ -177,8 +182,9 @@ export function Habits({ selectedDate, onDateChange }: Props) {
                     )}
                   </div>
                   <div className="t2">
-                    {done ? '✓ выполнено' : 'не отмечено'}
-                    {' · +'}{HABIT_TIER_XP[(h.tier ?? 'normal') as HabitTier]} XP
+                    {done
+                      ? `✓ +${HABIT_TIER_XP[(h.tier ?? 'normal') as HabitTier]} XP сегодня`
+                      : `${HABIT_TIER_XP[(h.tier ?? 'normal') as HabitTier]} XP за чек`}
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -198,6 +204,17 @@ export function Habits({ selectedDate, onDateChange }: Props) {
                   )}
                 </div>
               </button>
+            )
+            // Swipe-right marks complete; once complete, swipe disabled.
+            return (
+              <SwipeRow
+                key={h.id}
+                disabled={done}
+                onComplete={() => { toggleComplete(h.id, selectedDate); haptic('success') }}
+                actionLabel={`+${HABIT_TIER_XP[(h.tier ?? 'normal') as HabitTier]} XP`}
+              >
+                {row}
+              </SwipeRow>
             )
           })
         )}
