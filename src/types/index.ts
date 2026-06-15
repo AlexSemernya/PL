@@ -97,6 +97,32 @@ export interface DiaryEntry {
   createdAt: string
 }
 
+// ─── Timeline / День ────────────────────────────────────
+// Подраздел внутри «Главной» — расписание дня в стиле timeline.
+// События могут быть созданы вручную ИЛИ автоматически (при чеке привычки,
+// завершении цели, добавлении траты). Авто-события несут поле `source`
+// чтобы их можно было найти и удалить, когда юзер снимает исходный чек.
+
+export type EventCategory =
+  | 'sleep' | 'wake' | 'cardio' | 'strength' | 'food' | 'recovery'
+  | 'cold' | 'meditation' | 'work' | 'study' | 'social' | 'other'
+
+export interface DayEvent {
+  id: string
+  date: string              // 'YYYY-MM-DD'
+  time: string              // 'HH:MM' — 24h
+  title: string
+  category: EventCategory
+  durationMin?: number      // 0..1440
+  note?: string
+  done?: boolean            // для будущих событий: отметить выполненным
+  source?: {                // если событие авто-создано из привычки/цели
+    kind: 'habit' | 'goal' | 'finance'
+    refId: string
+  }
+  createdAt: string
+}
+
 // ─── Общее ──────────────────────────────────────────────
 export type TabId = 'home' | 'habits' | 'goals' | 'finance' | 'diary' | 'friends'
 

@@ -3,7 +3,25 @@ import { persist } from 'zustand/middleware'
 import dayjs from 'dayjs'
 import { createTelegramStorage } from '../lib/telegramStorage'
 import { uid } from '../lib/uid'
-import type { Habit } from '../types'
+import type { Habit, EventCategory } from '../types'
+import { useTimelineStore } from './timelineStore'
+import { nowHHMM } from '../lib/eventCategories'
+
+// Маппинг иконки привычки → категория timeline-события.
+// Дефолт — 'other'. Этот список покрывает самые частые иконки
+// (см. ICON_OPTIONS в Habits.tsx).
+const ICON_TO_CATEGORY: Record<string, EventCategory> = {
+  drop: 'food',        // вода
+  run: 'cardio',
+  shoe: 'cardio',
+  book2: 'study',
+  coffee: 'food',
+  moon: 'sleep',
+  mood: 'recovery',
+  food: 'food',
+  edit: 'work',
+  star: 'other',
+}
 
 interface HabitsState {
   habits: Habit[]
@@ -34,19 +52,39 @@ export const useHabitsStore = create<HabitsState>()(
 
       removeHabit: (id) => set((s) => ({ habits: s.habits.filter((h) => h.id !== id) })),
 
-      toggleComplete: (id, date) =>
+      toggleComplete: (id, date) => {
+        const habit = get().habits.find((h) => h.id === id)
+        if (!habit) return
+        const wasDone = habit.completedDates.includes(date)
         set((s) => ({
           habits: s.habits.map((h) => {
             if (h.id !== id) return h
-            const has = h.completedDates.includes(date)
             return {
               ...h,
-              completedDates: has
+              completedDates: wasDone
                 ? h.completedDates.filter((d) => d !== date)
                 : [...h.completedDates, date],
             }
           }),
-        })),
+        }))
+        // Sync с timeline: при чек-ине создаём событие, при снятии — удаляем
+        const timeline = useTimelineStore.getState()
+        const source = { kind: 'habit' as const, refId: id }
+        if (wasDone) {
+          timeline.removeSourceEvent(source, date)
+        } else {
+          const category = ICON_TO_CATEGORY[habit.icon ?? ''] ?? 'other'
+          // Если отмечаем сегодняшнюю — ставим текущее время; для прошлых
+          // дат — полдень как разумный дефолт
+          const isToday = date === dayjs().format('YYYY-MM-DD')
+          timeline.upsertSourceEvent(source, date, {
+            time: isToday ? nowHHMM() : '12:00',
+            title: habit.title,
+            category,
+            done: true,
+          })
+        }
+      },
 
       updateHabit: (id, updates) =>
         set((s) => ({ habits: s.habits.map((h) => (h.id === id ? { ...h, ...updates } : h)) })),

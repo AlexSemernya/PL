@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarHeader } from '../components/CalendarHeader'
 import { Icon } from '../components/Icons'
@@ -6,9 +7,11 @@ import { useHabitsStore } from '../store/habitsStore'
 import { useGoalsStore } from '../store/goalsStore'
 import { useFinanceStore } from '../store/financeStore'
 import { useDiaryStore } from '../store/diaryStore'
+import { useTimelineStore } from '../store/timelineStore'
 import { haptic } from '../lib/haptic'
 import type { TabId } from '../types'
 import { TierBadge, tierMeta } from '../components/Tier'
+import { DayTimeline } from '../components/DayTimeline'
 
 interface Props {
   selectedDate: string
@@ -24,6 +27,9 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
   const goals = useGoalsStore((s) => s.goals)
   const balance = useFinanceStore((s) => s.getBalance)()
   const diary = useDiaryStore((s) => s.entries)
+  const timelineEvents = useTimelineStore((s) => s.getEventsForDate(selectedDate))
+  // Full-screen день поверх Главной — переключается через "Открыть день"
+  const [dayFullView, setDayFullView] = useState(false)
 
   const selDay = dayjs(selectedDate)
   const selMonth = selDay.format('YYYY-MM')
@@ -75,6 +81,33 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
     return s
   })()
 
+  // Full-screen view расписания дня — открывается тапом "Открыть день".
+  // Сделано как state в Home чтобы не плодить отдельный таб в нижней навигации
+  // и при этом дать пространство для всей timeline-ленты.
+  if (dayFullView) {
+    return (
+      <>
+        <CalendarHeader selectedDate={selectedDate} onDateChange={onDateChange} />
+        <div className="scroll screen-enter">
+          <div className="w-row between" style={{ padding: '4px 4px 14px' }}>
+            <button
+              className="fab ghost"
+              style={{ width: 'auto', padding: '8px 14px', borderRadius: 12 }}
+              onClick={() => { setDayFullView(false); haptic('select') }}
+            >
+              <Icon name="chev-l" size={14} /> Назад
+            </button>
+            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>
+              {isToday ? 'Сегодня' : dayNumLabel}
+            </div>
+            <div style={{ width: 80 }} />
+          </div>
+          <DayTimeline date={selectedDate} compact={false} />
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <CalendarHeader selectedDate={selectedDate} onDateChange={onDateChange} />
@@ -93,6 +126,30 @@ export function Home({ selectedDate, onDateChange, onJumpTab }: Props) {
               <Icon name="flame" size={12} color="#0a0a0b" /> {streak} {pluralDays(streak)}
             </div>
           )}
+        </div>
+
+        {/* День — timeline-превью с кнопкой "Открыть день" */}
+        <div className="widget" style={{ marginBottom: 8 }}>
+          <div className="w-head" style={{ marginBottom: 12 }}>
+            <div className="w-title accent">
+              <Icon name="calendar" size={11} color="var(--accent)" />
+              {' '}
+              {isToday ? 'РАСПИСАНИЕ ДНЯ' : `РАСПИСАНИЕ · ${dayNumLabel.toUpperCase()}`}
+            </div>
+            {timelineEvents.length > 0 && (
+              <button
+                className="a"
+                onClick={() => { setDayFullView(true); haptic('select') }}
+              >
+                открыть →
+              </button>
+            )}
+          </div>
+          <DayTimeline
+            date={selectedDate}
+            compact={true}
+            onExpand={() => { setDayFullView(true); haptic('select') }}
+          />
         </div>
 
         {/* Today hero */}

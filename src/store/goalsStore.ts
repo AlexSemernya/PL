@@ -4,6 +4,8 @@ import dayjs from 'dayjs'
 import { createTelegramStorage } from '../lib/telegramStorage'
 import { uid } from '../lib/uid'
 import type { Goal, GoalStep } from '../types'
+import { useTimelineStore } from './timelineStore'
+import { nowHHMM } from '../lib/eventCategories'
 
 interface GoalsState {
   goals: Goal[]
@@ -36,8 +38,31 @@ export const useGoalsStore = create<GoalsState>()(
 
       removeGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
 
-      toggleComplete: (id) =>
-        set((s) => ({ goals: s.goals.map((g) => (g.id === id ? { ...g, completed: !g.completed } : g)) })),
+      toggleComplete: (id) => {
+        const goal = get().goals.find((g) => g.id === id)
+        if (!goal) return
+        const wasDone = goal.completed
+        set((s) => ({
+          goals: s.goals.map((g) => (g.id === id ? { ...g, completed: !g.completed } : g)),
+        }))
+        // Sync с timeline: завершение цели = событие на текущую дату
+        const today = dayjs().format('YYYY-MM-DD')
+        const timeline = useTimelineStore.getState()
+        const source = { kind: 'goal' as const, refId: id }
+        if (wasDone) {
+          // Откат завершения — удаляем все timeline-события этой цели (по всем датам)
+          // Простоe решение: ищем самое последнее за любую дату и удаляем
+          // Используем today как fallback
+          timeline.removeSourceEvent(source, today)
+        } else {
+          timeline.upsertSourceEvent(source, today, {
+            time: nowHHMM(),
+            title: `🏁 ${goal.title}`,
+            category: 'other',
+            done: true,
+          })
+        }
+      },
 
       updateGoal: (id, updates) =>
         set((s) => ({ goals: s.goals.map((g) => (g.id === id ? { ...g, ...updates } : g)) })),
